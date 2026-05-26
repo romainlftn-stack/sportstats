@@ -313,11 +313,11 @@
 <body>
 
 <div class="topbar">
-  <div class="brand" id="topbar-brand">Rebuild 2026</div>
   <div class="topbar-right">
     <a class="detail-link" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener">Détail →</a>
     <button class="refresh-btn" id="refresh-btn" title="Actualiser">↻</button>
   </div>
+  <div class="brand" id="topbar-brand">Rebuild 2026</div>
 </div>
 
 <div id="loading">
@@ -438,7 +438,9 @@ async function loadData() {
     const res = await fetch("/api/stats");
     allData = await res.json();
     if (!allData.semaines?.length) throw new Error("Aucune donnée Notion.");
-    selectedIdx = allData.semaines.length - 1;
+    const today = new Date().toISOString().split("T")[0];
+    const curIdx = allData.semaines.findIndex(s => today >= s.debut && today <= addDays(s.debut, 6));
+    selectedIdx = curIdx !== -1 ? curIdx : allData.semaines.length - 1;
     render();
   } catch(e) {
     loadingEl.textContent = "Erreur : " + e.message;
@@ -457,26 +459,27 @@ function addDays(iso, n) {
   return d.toISOString().split("T")[0];
 }
 
-function computeStatus(semaines) {
-  const today = new Date().toISOString().split("T")[0];
-  const cur = semaines.find(s => today >= s.debut && today <= addDays(s.debut, 6));
-  if (!cur) return null;
-
-  const maxEVA = cur.evaList?.length ? Math.max(...cur.evaList) : null;
+function computeStatus(s) {
+  if (!s) return null;
+  const maxEVA = s.evaList?.length ? Math.max(...s.evaList) : null;
 
   if (maxEVA !== null && maxEVA >= 3)
     return { label: "Stop — ITBS actif · pas de course", color: "var(--red)",    bg: "rgba(192,57,43,.08)",  icon: "🛑" };
   if (maxEVA !== null && maxEVA >= 1.5)
     return { label: "Surveiller l'ITBS · EVA 1-2 détecté", color: "var(--orange)", bg: "rgba(212,98,10,.08)", icon: "⚠️" };
-  if (cur.realisees >= cur.planifiees && cur.planifiees > 0)
+  if (s.realisees >= s.planifiees && s.planifiees > 0)
     return { label: "Semaine complétée · toutes les séances",  color: "var(--green)",  bg: "rgba(26,148,86,.08)",  icon: "✓" };
-  if (cur.realisees > 0)
-    return { label: `En cours · ${cur.realisees} / ${cur.planifiees} séances réalisées`, color: "var(--blue)", bg: "rgba(44,95,224,.08)", icon: "→" };
+  if (s.realisees > 0)
+    return { label: `En cours · ${s.realisees} / ${s.planifiees} séances réalisées`, color: "var(--blue)", bg: "rgba(44,95,224,.08)", icon: "→" };
   return { label: "Semaine non démarrée",  color: "var(--muted2)", bg: "transparent", icon: "○" };
 }
 
 function renderStatus() {
-  const s = computeStatus(allData.semaines);
+  const today = new Date().toISOString().split("T")[0];
+  const weekToShow = isDetail
+    ? allData.semaines[selectedIdx]
+    : allData.semaines.find(s => today >= s.debut && today <= addDays(s.debut, 6));
+  const s = computeStatus(weekToShow);
   const block = document.getElementById("status-block");
   if (!s) { block.style.display = "none"; return; }
   block.style.display = "block";
@@ -509,7 +512,7 @@ function renderKPIs() {
   const pct = t.planifiees ? Math.round(t.realisees / t.planifiees * 100) : 0;
 
   const fields = isDetail ? [
-    { label:"Séances S"+( idx+1), val: s.realisees+"/"+s.planifiees, sub: s.minutesCourse ? s.minutesCourse+" min course" : "aucune course", color: C.course },
+    { label: fmt(s.debut) + " → " + fmt(addDays(s.debut, 6)), val: s.realisees+"/"+s.planifiees, sub: s.minutesCourse ? s.minutesCourse+" min course" : "aucune course", color: C.course },
     { label:"KB", val: s.kb || 0, sub: "cette semaine", color: C.kb },
     { label:"EVA max", val: s.evaList?.length ? (Math.max(...s.evaList) === 0 ? "OK" : Math.max(...s.evaList).toFixed(1)) : "—", sub: "ITBS", color: Math.max(...(s.evaList||[0])) === 0 ? C.kine : C.orange },
     { label:"Kiné", val: s.kine || 0, sub: "cette semaine", color: C.orange },
@@ -682,6 +685,7 @@ function updateWeekNav() {
 
 function updateSelection() {
   renderKPIs();
+  renderStatus();
   renderChart();
   if (isDetail) { renderTable(); updateWeekNav(); }
 }
