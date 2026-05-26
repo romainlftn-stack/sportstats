@@ -53,10 +53,10 @@ export default async function handler(req, res) {
       const dateRaw = get("Date")?.date?.start ?? null;
       const titre = get("Séance")?.title?.[0]?.plain_text ?? get("Seance")?.title?.[0]?.plain_text ?? "?";
       const type = get("Type")?.select?.name ?? null;
-      const valide = get("Validé")?.checkbox ?? get("Valide")?.checkbox ?? false;
+      const valide = page.properties?.[""]?.checkbox ?? false;
       const statut = get("Statut")?.select?.name ?? "À faire";
       const evaRaw = get("EVA ITBS")?.select?.name ?? "N/A";
-      const cumulRaw = get("Cumul course")?.rich_text?.[0]?.plain_text ?? null;
+      const cumulRaw = get("Cumul")?.rich_text?.[0]?.plain_text ?? null;
 
       // Parser les minutes depuis "14 min", "16 min", etc.
       const minutes = cumulRaw ? parseInt(cumulRaw.replace(/[^0-9]/g, ""), 10) || 0 : 0;
