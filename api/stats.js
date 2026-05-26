@@ -97,6 +97,7 @@ export default async function handler(req, res) {
           planifiees: 0,
           realisees: 0,
           course: 0,
+          coursePlanifiees: 0,
           kb: 0,
           kine: 0,
           minutesCourse: 0,
@@ -108,6 +109,7 @@ export default async function handler(req, res) {
       w.planifiees++;
       if (s.valide) w.realisees++;
       if (s.type === "Course") {
+        w.coursePlanifiees++;
         w.minutesPlan += s.minutes;
         if (s.valide) { w.course++; w.minutesCourse += s.minutes; }
       }
