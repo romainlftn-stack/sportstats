@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sport Stats — Rebuild 2026</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #F7F6F4;
+      --surface:  #ffffff;
+      --border:   #e8e6e3;
+      --border2:  #d0ccc6;
+      --text:     #1a1a18;
+      --muted:    #8f8b84;
+      --muted2:   #bcb8b1;
+      --green:    #1a9456;
+      --blue:     #2c5fe0;
+      --pink:     #d63f74;
+      --orange:   #d4620a;
+      --red:      #c0392b;
+      --mono:     'IBM Plex Mono', monospace;
+      --sans:     'IBM Plex Sans', sans-serif;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 5px rgba(0,0,0,.04);
+      --shadow-md: 0 3px 10px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.05);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:      #0c0e14;
+        --surface: #12151f;
+        --border:  #1c2133;
+        --border2: #242a3a;
+        --text:    #d0d8ef;
+        --muted:   #4a5470;
+        --muted2:  #2e3650;
+        --green:   #4ecb8d;
+        --blue:    #4f8fff;
+        --pink:    #ff5c9e;
+        --orange:  #ff8c42;
+        --red:     #ff6b6b;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+        --shadow-md: 0 3px 10px rgba(0,0,0,.5);
+      }
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    @media (max-width: 768px) {
+      body { padding-bottom: max(80px, env(safe-area-inset-bottom, 80px)); }
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px 9px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 1px 0 var(--border), 0 2px 10px rgba(0,0,0,.05);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .topbar { box-shadow: 0 1px 0 var(--border), 0 3px 14px rgba(0,0,0,.3); }
+    }
+
+    .brand {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--muted2);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .brand::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(26,148,86,.18);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .brand::before { box-shadow: 0 0 0 2px rgba(78,203,141,.2); }
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 6px; }
+
+    .detail-link {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--muted2);
+      text-decoration: none;
+      letter-spacing: .06em;
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      transition: all .15s;
+    }
+    .detail-link:hover { color: var(--green); border-color: var(--green); background: var(--surface); }
+
+    .refresh-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+      padding: 0; line-height: 1;
+    }
+    .refresh-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface); }
+    .refresh-btn:active { transform: scale(.9); }
+    .refresh-btn.spinning { animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BODY ── */
+    .widget-body { padding: 12px 13px 14px; }
+
+    /* ── KPIs ── */
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 500px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid;
+      border-radius: 8px;
+      padding: 9px 10px 8px;
+      box-shadow: var(--shadow-sm);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+    .kpi-label {
+      font-size: 9px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted); margin-bottom: 5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .kpi-val {
+      font-size: 17px; font-weight: 600;
+      font-family: var(--mono); line-height: 1;
+    }
+
+    .kpi-sub { font-size: 9px; font-family: var(--mono); color: var(--muted); margin-top: 4px; }
+
+    /* ── PROGRESS ── */
+    .progress-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .progress-header {
+      display: flex; justify-content: space-between;
+      font-size: 9px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted2); margin-bottom: 8px;
+    }
+
+    .progress-bar-bg {
+      background: var(--border); border-radius: 4px;
+      height: 6px; overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%; border-radius: 4px;
+      background: var(--green); transition: width .6s ease;
+    }
+
+    /* ── CHART ── */
+    .chart-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px 9px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 10px;
+    }
+
+    .chart-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .chart-label {
+      font-size: 9px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .08em; color: var(--muted2);
+    }
+
+    .toggles { display: flex; gap: 8px; }
+
+    .toggle {
+      font-size: 9px; font-family: var(--mono);
+      display: flex; align-items: center; gap: 4px;
+      cursor: pointer; opacity: 1; transition: opacity .15s; color: var(--muted);
+    }
+    .toggle.off { opacity: .35; }
+    .toggle-line { width: 14px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+
+    canvas { max-height: 80px; }
+
+    /* detail mode chart is taller */
+    .detail-mode canvas { max-height: 110px; }
+
+    /* ── TABLE (detail only) ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      font-size: 9px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted2); padding: 8px 10px 7px;
+      text-align: left; border-bottom: 1px solid var(--border);
+      background: var(--bg); font-weight: 400;
+    }
+
+    tbody td {
+      font-size: 11px; font-family: var(--mono);
+      padding: 7px 10px; border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+    tbody tr.current-week { background: color-mix(in srgb, var(--green) 6%, var(--surface)); }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+    /* ── WEEK NAV (detail only) ── */
+    .week-nav {
+      display: none; align-items: center; justify-content: space-between;
+      padding: 7px 10px; margin-bottom: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; box-shadow: var(--shadow-sm);
+    }
+    .week-nav.visible { display: flex; }
+
+    .nav-btn {
+      background: none; border: 1px solid var(--border);
+      color: var(--muted); padding: 2px 8px; border-radius: 4px;
+      font-family: var(--mono); font-size: 10px; cursor: pointer;
+      transition: all .15s;
+    }
+    .nav-btn:hover:not(:disabled) { color: var(--text); border-color: var(--border2); }
+    .nav-btn:disabled { opacity: .3; cursor: default; }
+
+    .week-label {
+      text-align: center;
+      font-family: var(--mono); font-size: 10px; color: var(--text);
+    }
+    .week-label-pos { font-size: 9px; color: var(--muted2); margin-top: 1px; }
+
+    /* ── LOADING ── */
+    #loading {
+      text-align: center; padding: 42px 0;
+      font-size: 10px; font-family: var(--mono);
+      color: var(--muted2); letter-spacing: .08em;
+    }
+    .loading-dots { display: inline-flex; gap: 5px; margin-top: 10px; }
+    .loading-dots span {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--muted2); animation: pulse-dot .9s ease-in-out infinite;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: .18s; }
+    .loading-dots span:nth-child(3) { animation-delay: .36s; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: .2; transform: scale(.8); }
+      50%       { opacity: 1;  transform: scale(1.1); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand" id="topbar-brand">Rebuild 2026</div>
+  <div class="topbar-right">
+    <a class="detail-link" id="detail-link" href="?mode=detail">Détail →</a>
+    <button class="refresh-btn" id="refresh-btn" title="Actualiser">↻</button>
+  </div>
+</div>
+
+<div id="loading">
+  Chargement
+  <div class="loading-dots"><span></span><span></span><span></span></div>
+</div>
+
+<div id="main" style="display:none">
+  <div class="widget-body">
+
+    <!-- KPIs -->
+    <div class="kpis" id="kpis"></div>
+
+    <!-- Progression protocole -->
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span>Objectif 30 min continues</span>
+        <span id="progress-right"></span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Toggles (detail only) -->
+    <div class="toggles" id="toggles" style="display:none; margin-bottom:8px;"></div>
+
+    <!-- Week nav (detail only) -->
+    <div class="week-nav" id="week-nav">
+      <button class="nav-btn" id="prev-week">←</button>
+      <div class="week-label">
+        <div id="week-label-name">—</div>
+        <div class="week-label-pos" id="week-label-pos"></div>
+      </div>
+      <button class="nav-btn" id="next-week">→</button>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <div class="chart-label" id="chart-label">Minutes de course · évolution</div>
+      </div>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <!-- Table (detail only) -->
+    <div class="table-wrap" id="table-wrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th>Semaine</th>
+            <th>Séances</th>
+            <th>Course</th>
+            <th>KB</th>
+            <th>EVA ITBS</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+const isDetail = new URLSearchParams(location.search).get("mode") === "detail";
+
+const C = {
+  course: dark ? "#4f8fff" : "#2c5fe0",
+  kb:     dark ? "#ff5c9e" : "#d63f74",
+  kine:   dark ? "#4ecb8d" : "#1a9456",
+  orange: dark ? "#ff8c42" : "#d4620a",
+};
+
+let allData = null;
+let chartInst = null;
+let active = { course: true, kb: true };
+let selectedIdx = 0;
+
+// Setup detail mode
+if (isDetail) {
+  document.body.classList.add("detail-mode");
+  document.getElementById("detail-link").style.display = "none";
+  document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Stats détaillées";
+  document.getElementById("toggles").style.display = "flex";
+  document.getElementById("table-wrap").style.display = "block";
+  document.getElementById("week-nav").classList.add("visible");
+}
+
+async function loadData() {
+  const btn = document.getElementById("refresh-btn");
+  const loadingEl = document.getElementById("loading");
+  btn.classList.add("spinning");
+  loadingEl.innerHTML = 'Chargement <div class="loading-dots"><span></span><span></span><span></span></div>';
+  loadingEl.style.display = "block";
+  document.getElementById("main").style.display = "none";
+
+  try {
+    const res = await fetch("/api/stats");
+    allData = await res.json();
+    if (!allData.semaines?.length) throw new Error("Aucune donnée Notion.");
+    selectedIdx = allData.semaines.length - 1;
+    render();
+  } catch(e) {
+    loadingEl.textContent = "Erreur : " + e.message;
+  } finally {
+    btn.classList.remove("spinning");
+  }
+}
+
+function fmt(iso) {
+  if (!iso) return "?";
+  return new Date(iso).toLocaleDateString("fr-FR", { day:"numeric", month:"short" });
+}
+
+function addDays(iso, n) {
+  const d = new Date(iso); d.setDate(d.getDate() + n);
+  return d.toISOString().split("T")[0];
+}
+
+function render() {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("main").style.display = "block";
+  if (isDetail) {
+    renderToggles();
+    renderTable();
+    updateWeekNav();
+  }
+  renderKPIs();
+  renderProgress();
+  renderChart();
+}
+
+function renderKPIs() {
+  const t = allData.totaux;
+  const idx = isDetail ? selectedIdx : allData.semaines.length - 1;
+  const s = allData.semaines[idx];
+  const pct = t.planifiees ? Math.round(t.realisees / t.planifiees * 100) : 0;
+
+  const fields = isDetail ? [
+    { label:"Séances S"+( idx+1), val: s.realisees+"/"+s.planifiees, sub: s.minutesCourse ? s.minutesCourse+" min course" : "aucune course", color: C.course },
+    { label:"KB", val: s.kb || 0, sub: "cette semaine", color: C.kb },
+    { label:"EVA max", val: s.evaList?.length ? (Math.max(...s.evaList) === 0 ? "OK" : Math.max(...s.evaList).toFixed(1)) : "—", sub: "ITBS", color: Math.max(...(s.evaList||[0])) === 0 ? C.kine : C.orange },
+    { label:"Kiné", val: s.kine || 0, sub: "cette semaine", color: C.orange },
+  ] : [
+    { label:"Séances total", val: t.realisees+"/"+t.planifiees, sub: pct+"% du plan", color: C.course },
+    { label:"Min. course", val: t.minutesCourse || 0, sub: t.courseTotal+" sorties", color: C.kine },
+    { label:"KB total", val: t.kbTotal, sub: "séances", color: C.kb },
+    { label:"Kiné total", val: t.kineTotal, sub: "séances", color: C.orange },
+  ];
+
+  document.getElementById("kpis").innerHTML = fields.map(f => `
+    <div class="kpi" style="border-left-color:${f.color}">
+      <div class="kpi-label">${f.label}</div>
+      <div class="kpi-val" style="color:${f.color}">${f.val}</div>
+      <div class="kpi-sub">${f.sub}</div>
+    </div>
+  `).join("");
+}
+
+function renderProgress() {
+  const maxMin = Math.max(...allData.semaines.map(s => s.minutesCourse || 0));
+  const pct = Math.min(100, Math.round(maxMin / 30 * 100));
+  document.getElementById("progress-bar").style.width = pct + "%";
+  document.getElementById("progress-right").textContent = maxMin + " min max · objectif 30 min continues";
+}
+
+function renderToggles() {
+  document.getElementById("toggles").innerHTML = [
+    { key:"course", label:"Course", color: C.course },
+    { key:"kb",     label:"KB",     color: C.kb },
+  ].map(t => `
+    <div class="toggle ${active[t.key] ? "" : "off"}" onclick="toggleLine('${t.key}')">
+      <div class="toggle-line" style="background:${t.color}"></div>
+      <span>${t.label}</span>
+    </div>
+  `).join("");
+}
+
+function toggleLine(key) {
+  active[key] = !active[key];
+  renderToggles();
+  renderChart();
+}
+
+function renderChart() {
+  if (chartInst) chartInst.destroy();
+
+  const gridColor = dark ? "#1c2133" : "#eeece9";
+  const tickColor = dark ? "#2e3650" : "#c4c0ba";
+
+  if (!isDetail) {
+    // Widget: mini line chart, dernières 8 semaines, impressions seulement
+    const data = allData.semaines.slice(-8);
+    chartInst = new Chart(document.getElementById("chart").getContext("2d"), {
+      type: "line",
+      data: {
+        labels: data.map(s => fmt(s.debut)),
+        datasets: [{
+          data: data.map(s => s.minutesCourse || 0),
+          borderColor: C.course,
+          borderWidth: 1.5,
+          pointRadius: 2,
+          fill: true,
+          backgroundColor: C.course + "20",
+          tension: 0.4,
+        }]
+      },
+      options: {
+        responsive: true, animation: false,
+        plugins: { legend:{display:false}, tooltip:{enabled:false} },
+        scales: { x:{display:false}, y:{display:false} },
+      }
+    });
+    return;
+  }
+
+  // Detail: fenêtre de 4 semaines autour de la sélection
+  const winStart = Math.max(0, selectedIdx - 3);
+  const winEnd = winStart + Math.min(4, allData.semaines.length);
+  const win = allData.semaines.slice(winStart, winEnd);
+  const selInWin = selectedIdx - winStart;
+
+  const datasets = [];
+
+  function makeDs(key, color, label, yAxis) {
+    if (!active[key]) return null;
+    const vals = win.map(s => key === "course" ? (s.minutesCourse||0) : (s[key]||0));
+    return {
+      label,
+      data: vals,
+      borderColor: color,
+      borderWidth: 2,
+      pointRadius: win.map((_,i) => i === selInWin ? 6 : 3),
+      pointBackgroundColor: win.map((_,i) => i === selInWin ? color : (dark?"#12151f":"#ffffff")),
+      pointBorderColor: color,
+      pointBorderWidth: win.map((_,i) => i === selInWin ? 2.5 : 1.5),
+      tension: .3, fill: false,
+      yAxisID: yAxis,
+    };
+  }
+
+  const c = makeDs("course", C.course, "Min. course", "y1");
+  const k = makeDs("kb",     C.kb,     "Séances KB",  "y2");
+  if (c) datasets.push(c);
+  if (k) datasets.push(k);
+
+  chartInst = new Chart(document.getElementById("chart").getContext("2d"), {
+    type: "line",
+    data: { labels: win.map(s => fmt(s.debut)), datasets },
+    options: {
+      responsive: true,
+      interaction: { mode:"index", intersect:false },
+      onClick: (e, els) => {
+        if (els.length) { selectedIdx = winStart + els[0].index; updateSelection(); }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          backgroundColor: dark?"#0c0e14":"#ffffff",
+          borderColor: dark?"#1c2133":"#e8e6e3",
+          borderWidth: 1,
+          titleColor: dark?"#4a5470":"#8f8b84",
+          bodyColor: dark?"#d0d8ef":"#1a1a18",
+          titleFont:{family:"'IBM Plex Mono'",size:10},
+          bodyFont:{family:"'IBM Plex Mono'",size:11},
+        }
+      },
+      scales: {
+        x:  { ticks:{color:tickColor,font:{family:"'IBM Plex Mono'",size:9}}, grid:{color:gridColor} },
+        y1: { position:"left",  ticks:{color:tickColor,font:{family:"'IBM Plex Mono'",size:9}}, grid:{color:gridColor} },
+        y2: { position:"right", ticks:{color:tickColor,font:{family:"'IBM Plex Mono'",size:9}}, grid:{display:false} },
+      }
+    }
+  });
+}
+
+function renderTable() {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("table-body").innerHTML =
+    [...allData.semaines].reverse().map((s, i) => {
+      const origIdx = allData.semaines.length - 1 - i;
+      const isCur = today >= s.debut && today <= addDays(s.debut, 6);
+      const isSel = origIdx === selectedIdx;
+
+      let evaHtml = '<span style="color:var(--muted2)">—</span>';
+      if (s.evaList?.length) {
+        const max = Math.max(...s.evaList);
+        const color = max === 0 ? "var(--green)" : max < 2 ? "var(--orange)" : "var(--red)";
+        const label = max === 0 ? "OK" : max < 2 ? "1-2" : "3+";
+        evaHtml = `<span><span class="dot" style="background:${color}"></span>${label}</span>`;
+      }
+
+      return `<tr class="${isCur ? "current-week" : ""}" style="${isSel ? "font-weight:500" : ""}" onclick="selectWeek(${origIdx})" style="cursor:pointer">
+        <td>${fmt(s.debut)}</td>
+        <td style="color:var(--text)">${s.realisees}/${s.planifiees}</td>
+        <td style="color:${C.course}">${s.minutesCourse ? s.minutesCourse+" min" : "—"}</td>
+        <td style="color:${C.kb}">${s.kb || "—"}</td>
+        <td>${evaHtml}</td>
+      </tr>`;
+    }).join("");
+}
+
+function updateWeekNav() {
+  const s = allData.semaines[selectedIdx];
+  document.getElementById("week-label-name").textContent = fmt(s.debut) + " → " + fmt(addDays(s.debut, 6));
+  document.getElementById("week-label-pos").textContent = (selectedIdx+1) + " / " + allData.semaines.length;
+  document.getElementById("prev-week").disabled = selectedIdx === 0;
+  document.getElementById("next-week").disabled = selectedIdx === allData.semaines.length - 1;
+}
+
+function updateSelection() {
+  renderKPIs();
+  renderChart();
+  if (isDetail) { renderTable(); updateWeekNav(); }
+}
+
+function selectWeek(idx) { selectedIdx = idx; updateSelection(); }
+
+document.getElementById("prev-week").addEventListener("click", () => {
+  if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
+});
+document.getElementById("next-week").addEventListener("click", () => {
+  if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); }
+});
+
+document.getElementById("refresh-btn").addEventListener("click", loadData);
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => location.reload());
+
+loadData();
+</script>
+</body>
+</html>
