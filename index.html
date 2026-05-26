@@ -315,7 +315,7 @@
 <div class="topbar">
   <div class="brand" id="topbar-brand">Rebuild 2026</div>
   <div class="topbar-right">
-    <a class="detail-link" id="detail-link" href="?mode=detail">Détail →</a>
+    <a class="detail-link" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener">Détail →</a>
     <button class="refresh-btn" id="refresh-btn" title="Actualiser">↻</button>
   </div>
 </div>
@@ -327,6 +327,24 @@
 
 <div id="main" style="display:none">
   <div class="widget-body">
+
+    <!-- Statut automatique semaine -->
+    <div id="status-block" style="display:none; margin-bottom:10px;">
+      <div id="status-inner" style="
+        border-radius:8px;
+        padding:9px 12px;
+        font-size:10px;
+        font-family:var(--mono);
+        letter-spacing:.06em;
+        border:1px solid;
+        display:flex;
+        align-items:center;
+        gap:8px;
+      ">
+        <span id="status-icon"></span>
+        <span id="status-label"></span>
+      </div>
+    </div>
 
     <!-- KPIs -->
     <div class="kpis" id="kpis"></div>
@@ -439,6 +457,37 @@ function addDays(iso, n) {
   return d.toISOString().split("T")[0];
 }
 
+function computeStatus(semaines) {
+  const today = new Date().toISOString().split("T")[0];
+  const cur = semaines.find(s => today >= s.debut && today <= addDays(s.debut, 6));
+  if (!cur) return null;
+
+  const maxEVA = cur.evaList?.length ? Math.max(...cur.evaList) : null;
+
+  if (maxEVA !== null && maxEVA >= 3)
+    return { label: "Stop — ITBS actif · pas de course", color: "var(--red)",    bg: "rgba(192,57,43,.08)",  icon: "🛑" };
+  if (maxEVA !== null && maxEVA >= 1.5)
+    return { label: "Surveiller l'ITBS · EVA 1-2 détecté", color: "var(--orange)", bg: "rgba(212,98,10,.08)", icon: "⚠️" };
+  if (cur.realisees >= cur.planifiees && cur.planifiees > 0)
+    return { label: "Semaine complétée · toutes les séances",  color: "var(--green)",  bg: "rgba(26,148,86,.08)",  icon: "✓" };
+  if (cur.realisees > 0)
+    return { label: `En cours · ${cur.realisees} / ${cur.planifiees} séances réalisées`, color: "var(--blue)", bg: "rgba(44,95,224,.08)", icon: "→" };
+  return { label: "Semaine non démarrée",  color: "var(--muted2)", bg: "transparent", icon: "○" };
+}
+
+function renderStatus() {
+  const s = computeStatus(allData.semaines);
+  const block = document.getElementById("status-block");
+  if (!s) { block.style.display = "none"; return; }
+  block.style.display = "block";
+  const inner = document.getElementById("status-inner");
+  inner.style.color = s.color;
+  inner.style.borderColor = s.color;
+  inner.style.background = s.bg;
+  document.getElementById("status-icon").textContent = s.icon;
+  document.getElementById("status-label").textContent = s.label;
+}
+
 function render() {
   document.getElementById("loading").style.display = "none";
   document.getElementById("main").style.display = "block";
@@ -449,6 +498,7 @@ function render() {
   }
   renderKPIs();
   renderProgress();
+  renderStatus();
   renderChart();
 }
 
