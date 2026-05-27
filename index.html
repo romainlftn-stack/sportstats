@@ -598,25 +598,20 @@ function renderKPIs() {
 }
 
 function renderProgress() {
-  const today = new Date().toISOString().split("T")[0];
-  const semainesFaites = allData.semaines.filter(s => s.debut <= today);
-  const maxMin = semainesFaites.length
-    ? Math.max(...semainesFaites.map(s => s.minutesCourse || 0))
-    : 0;
-
+  const maxBloc = allData.totaux.maxBloc || 0;
   const objectif = 30;
-  const atteint = maxMin >= objectif;
-  const pct = Math.min(100, Math.round(maxMin / objectif * 100));
+  const atteint = maxBloc >= objectif;
+  const pct = Math.min(100, Math.round(maxBloc / objectif * 100));
 
   document.getElementById("progress-bar").style.width = pct + "%";
 
   if (atteint) {
-    document.getElementById("progress-header-left").textContent = "Objectif 30 min ✓";
-    document.getElementById("progress-right").textContent = maxMin + " min record";
+    document.getElementById("progress-header-left").textContent = "Bloc continu max ✓";
+    document.getElementById("progress-right").textContent = maxBloc + " min — objectif atteint";
     document.getElementById("progress-bar").style.background = "var(--green)";
   } else {
-    document.getElementById("progress-header-left").textContent = "Objectif 30 min";
-    document.getElementById("progress-right").textContent = maxMin + " / 30 min";
+    document.getElementById("progress-header-left").textContent = "Bloc continu max";
+    document.getElementById("progress-right").textContent = maxBloc + " / 30 min";
   }
 }
 
