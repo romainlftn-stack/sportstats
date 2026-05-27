@@ -276,21 +276,11 @@
       .detail-mode .progress-bar-bg { height: 8px; }
       .detail-mode .progress-header { font-size: 10px; margin-bottom: 10px; }
 
-      /* Week nav — colonne gauche */
+      /* Week nav — pleine largeur */
       .detail-mode .week-nav {
-        grid-column: 1;
+        grid-column: 1 / -1;
         margin-bottom: 0;
         padding: 10px 14px;
-      }
-      .detail-mode .week-label { font-size: 11px; }
-
-      /* Toggles — colonne droite, alignés avec week nav */
-      .detail-mode .toggles-wrap {
-        grid-column: 2;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 12px;
       }
 
       /* Chart — pleine largeur */
@@ -433,11 +423,6 @@
       </div>
     </div>
 
-    <!-- Toggles (detail only) -->
-    <div class="toggles-wrap" id="toggles-wrap" style="display:none;">
-      <div class="toggles" id="toggles"></div>
-    </div>
-
     <!-- Week nav (detail only) -->
     <div class="week-nav" id="week-nav">
       <button class="nav-btn" id="prev-week">←</button>
@@ -445,8 +430,12 @@
         <div id="week-label-name">—</div>
         <div class="week-label-pos" id="week-label-pos"></div>
       </div>
+      <div class="toggles" id="toggles" style="display:none;"></div>
       <button class="nav-btn" id="next-week">→</button>
     </div>
+
+    <!-- Toggles wrapper (hidden, replaced by inline) -->
+    <div class="toggles-wrap" id="toggles-wrap" style="display:none;"></div>
 
     <!-- Chart -->
     <div class="chart-wrap">
@@ -497,7 +486,7 @@ if (isDetail) {
   document.getElementById("detail-link").href = "https://sportstats-inky.vercel.app/";
   document.getElementById("detail-link").textContent = "← Accueil";
   document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Détail";
-  document.getElementById("toggles-wrap").style.display = "flex";
+  document.getElementById("toggles").style.display = "flex";
   document.getElementById("table-wrap").style.display = "block";
   document.getElementById("week-nav").classList.add("visible");
 }
