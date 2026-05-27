@@ -415,7 +415,7 @@
     <!-- Progression protocole -->
     <div class="progress-wrap">
       <div class="progress-header">
-        <span>Record de course · progression vers 30 min continues</span>
+        <span id="progress-header-left">Objectif 30 min</span>
         <span id="progress-right"></span>
       </div>
       <div class="progress-bar-bg">
@@ -577,7 +577,7 @@ function renderKPIs() {
   const pct = t.planifiees ? Math.round(t.realisees / t.planifiees * 100) : 0;
 
   const fields = isDetail ? [
-    { label: fmt(s.debut) + " → " + fmt(addDays(s.debut, 6)), val: s.course+"/"+s.coursePlanifiees, sub: s.minutesCourse ? s.minutesCourse+" min course" : "aucune course", color: C.course },
+    { label: "Course", val: s.course+"/"+s.coursePlanifiees, sub: fmt(s.debut) + " → " + fmt(addDays(s.debut, 6)) + (s.minutesCourse ? " · " + s.minutesCourse + " min" : ""), color: C.course },
     { label:"KB", val: s.kb || 0, sub: "cette semaine", color: C.kb },
     { label:"EVA max", val: s.evaList?.length ? (Math.max(...s.evaList) === 0 ? "OK" : Math.max(...s.evaList).toFixed(1)) : "—", sub: "ITBS", color: Math.max(...(s.evaList||[0])) === 0 ? C.kine : C.orange },
     { label:"Kiné", val: s.kine || 0, sub: "cette semaine", color: C.orange },
@@ -603,9 +603,21 @@ function renderProgress() {
   const maxMin = semainesFaites.length
     ? Math.max(...semainesFaites.map(s => s.minutesCourse || 0))
     : 0;
-  const pct = Math.min(100, Math.round(maxMin / 30 * 100));
+
+  const objectif = 30;
+  const atteint = maxMin >= objectif;
+  const pct = Math.min(100, Math.round(maxMin / objectif * 100));
+
   document.getElementById("progress-bar").style.width = pct + "%";
-  document.getElementById("progress-right").textContent = maxMin + " min — record actuel";
+
+  if (atteint) {
+    document.getElementById("progress-header-left").textContent = "Objectif 30 min ✓";
+    document.getElementById("progress-right").textContent = maxMin + " min record";
+    document.getElementById("progress-bar").style.background = "var(--green)";
+  } else {
+    document.getElementById("progress-header-left").textContent = "Objectif 30 min";
+    document.getElementById("progress-right").textContent = maxMin + " / 30 min";
+  }
 }
 
 function renderToggles() {
