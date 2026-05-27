@@ -415,7 +415,7 @@
     <!-- Progression protocole -->
     <div class="progress-wrap">
       <div class="progress-header">
-        <span>Objectif 30 min continues</span>
+        <span>Record de course · progression vers 30 min continues</span>
         <span id="progress-right"></span>
       </div>
       <div class="progress-bar-bg">
@@ -598,10 +598,14 @@ function renderKPIs() {
 }
 
 function renderProgress() {
-  const maxMin = Math.max(...allData.semaines.map(s => s.minutesCourse || 0));
+  const today = new Date().toISOString().split("T")[0];
+  const semainesFaites = allData.semaines.filter(s => s.debut <= today);
+  const maxMin = semainesFaites.length
+    ? Math.max(...semainesFaites.map(s => s.minutesCourse || 0))
+    : 0;
   const pct = Math.min(100, Math.round(maxMin / 30 * 100));
   document.getElementById("progress-bar").style.width = pct + "%";
-  document.getElementById("progress-right").textContent = maxMin + " min max · objectif 30 min continues";
+  document.getElementById("progress-right").textContent = maxMin + " min — record actuel";
 }
 
 function renderToggles() {
@@ -629,14 +633,15 @@ function renderChart() {
   const tickColor = dark ? "#2e3650" : "#c4c0ba";
 
   if (!isDetail) {
-    // Widget: mini line chart, dernières 8 semaines, impressions seulement
-    const data = allData.semaines.slice(-8);
+    // Widget: mini line chart — uniquement semaines passées ou en cours
+    const today = new Date().toISOString().split("T")[0];
+    const done = allData.semaines.filter(s => s.debut <= today).slice(-8);
     chartInst = new Chart(document.getElementById("chart").getContext("2d"), {
       type: "line",
       data: {
-        labels: data.map(s => fmt(s.debut)),
+        labels: done.map(s => fmt(s.debut)),
         datasets: [{
-          data: data.map(s => s.minutesCourse || 0),
+          data: done.map(s => s.minutesCourse || 0),
           borderColor: C.course,
           borderWidth: 1.5,
           pointRadius: 2,
@@ -654,11 +659,14 @@ function renderChart() {
     return;
   }
 
-  // Detail: fenêtre de 4 semaines autour de la sélection
-  const winStart = Math.max(0, selectedIdx - 3);
-  const winEnd = winStart + Math.min(4, allData.semaines.length);
-  const win = allData.semaines.slice(winStart, winEnd);
-  const selInWin = selectedIdx - winStart;
+  // Detail: fenêtre de 4 semaines — uniquement semaines passées ou en cours
+  const today = new Date().toISOString().split("T")[0];
+  const semainesDone = allData.semaines.filter(s => s.debut <= today);
+  const clampedIdx = Math.min(selectedIdx, semainesDone.length - 1);
+  const winStart = Math.max(0, clampedIdx - 3);
+  const winEnd = winStart + Math.min(4, semainesDone.length);
+  const win = semainesDone.slice(winStart, winEnd);
+  const selInWin = clampedIdx - winStart;
 
   const datasets = [];
 
