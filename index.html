@@ -237,6 +237,79 @@
     /* detail mode chart is taller */
     .detail-mode canvas { max-height: 110px; }
 
+    /* ── DESKTOP DETAIL LAYOUT ── */
+    @media (min-width: 900px) {
+      .detail-mode .widget-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto;
+        gap: 12px;
+        padding: 16px 20px 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* Statut — pleine largeur */
+      .detail-mode #status-block {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+      }
+      .detail-mode #status-inner { padding: 11px 16px; font-size: 11px; }
+
+      /* KPIs — pleine largeur */
+      .detail-mode .kpis {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+        gap: 10px;
+      }
+      .detail-mode .kpi { padding: 14px 16px 13px; }
+      .detail-mode .kpi-val { font-size: 22px; }
+      .detail-mode .kpi-label { font-size: 10px; margin-bottom: 7px; }
+      .detail-mode .kpi-sub { font-size: 10px; margin-top: 6px; }
+
+      /* Progress — pleine largeur */
+      .detail-mode .progress-wrap {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+        padding: 14px 16px;
+      }
+      .detail-mode .progress-bar-bg { height: 8px; }
+      .detail-mode .progress-header { font-size: 10px; margin-bottom: 10px; }
+
+      /* Week nav — colonne gauche */
+      .detail-mode .week-nav {
+        grid-column: 1;
+        margin-bottom: 0;
+        padding: 10px 14px;
+      }
+      .detail-mode .week-label { font-size: 11px; }
+
+      /* Toggles — colonne droite, alignés avec week nav */
+      .detail-mode .toggles-wrap {
+        grid-column: 2;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+      }
+
+      /* Chart — pleine largeur */
+      .detail-mode .chart-wrap {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+        padding: 14px 16px 12px;
+      }
+      .detail-mode canvas { max-height: 180px; }
+
+      /* Table — pleine largeur */
+      .detail-mode .table-wrap {
+        grid-column: 1 / -1;
+      }
+      .detail-mode thead th { padding: 10px 14px 9px; font-size: 10px; }
+      .detail-mode tbody td { padding: 10px 14px; font-size: 12px; }
+    }
+
+
     /* ── TABLE (detail only) ── */
     .table-wrap {
       background: var(--surface);
@@ -361,7 +434,9 @@
     </div>
 
     <!-- Toggles (detail only) -->
-    <div class="toggles" id="toggles" style="display:none; margin-bottom:8px;"></div>
+    <div class="toggles-wrap" id="toggles-wrap" style="display:none;">
+      <div class="toggles" id="toggles"></div>
+    </div>
 
     <!-- Week nav (detail only) -->
     <div class="week-nav" id="week-nav">
@@ -422,7 +497,7 @@ if (isDetail) {
   document.getElementById("detail-link").href = "https://sportstats-inky.vercel.app/";
   document.getElementById("detail-link").textContent = "← Accueil";
   document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Détail";
-  document.getElementById("toggles").style.display = "flex";
+  document.getElementById("toggles-wrap").style.display = "flex";
   document.getElementById("table-wrap").style.display = "block";
   document.getElementById("week-nav").classList.add("visible");
 }
