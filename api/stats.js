@@ -121,13 +121,19 @@ export default async function handler(req, res) {
     const semainesArr = Object.values(semaines).sort((a, b) => a.debut.localeCompare(b.debut));
 
     // Totaux globaux
+    const seancesCourseFaites = seances.filter(s => s.type === "Course" && s.valide);
+    const maxBloc = seancesCourseFaites.length
+      ? Math.max(...seancesCourseFaites.map(s => s.minutes))
+      : 0;
+
     const totaux = {
       planifiees: seances.length,
       realisees: seances.filter(s => s.valide).length,
-      minutesCourse: seances.filter(s => s.type === "Course" && s.valide).reduce((a, s) => a + s.minutes, 0),
+      minutesCourse: seancesCourseFaites.reduce((a, s) => a + s.minutes, 0),
       kbTotal: seances.filter(s => s.type === "Kettlebell" && s.valide).length,
       kineTotal: seances.filter(s => s.type === "Kiné" && s.valide).length,
-      courseTotal: seances.filter(s => s.type === "Course" && s.valide).length,
+      courseTotal: seancesCourseFaites.length,
+      maxBloc,
     };
 
     res.status(200).json({ semaines: semainesArr, totaux, raw: seances });
