@@ -77,7 +77,9 @@ export default async function handler(req, res) {
         semaine = lundi.toISOString().split("T")[0];
       }
 
-      return { titre, type, date: dateRaw, semaine, valide, statut, eva, minutes };
+      const blocMax = p["Bloc max"]?.number ?? 0;
+
+      return { titre, type, date: dateRaw, semaine, valide, statut, eva, minutes, blocMax };
     });
 
     // Trier par date
@@ -123,7 +125,7 @@ export default async function handler(req, res) {
     // Totaux globaux
     const seancesCourseFaites = seances.filter(s => s.type === "Course" && s.valide);
     const maxBloc = seancesCourseFaites.length
-      ? Math.max(...seancesCourseFaites.map(s => s.minutes))
+      ? Math.max(...seancesCourseFaites.map(s => s.blocMax || 0))
       : 0;
 
     const totaux = {
