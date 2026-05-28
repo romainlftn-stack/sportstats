@@ -300,7 +300,102 @@
     }
 
 
-    /* ── TABLE (detail only) ── */
+    /* ── SESSIONS PREVIEW (detail only) ── */
+    .sessions-preview {
+      display: none;
+      margin-bottom: 10px;
+    }
+
+    .sessions-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .sessions-cols { grid-template-columns: 1fr; }
+    }
+
+    .sessions-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sessions-col-header {
+      font-size: 9px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted2);
+      padding: 8px 12px 7px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .session-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    .session-item:last-child { border-bottom: none; }
+    .session-item:hover { background: var(--bg); }
+
+    .session-type-badge {
+      font-size: 8px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 2px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      border: 1px solid;
+    }
+
+    .session-info { flex: 1; min-width: 0; }
+
+    .session-title {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .session-meta {
+      font-size: 9px;
+      font-family: var(--mono);
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .session-eva {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 900px) {
+      .detail-mode .sessions-preview {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+      }
+      .detail-mode .sessions-cols { gap: 12px; }
+      .detail-mode .session-item { padding: 10px 14px; }
+      .detail-mode .session-title { font-size: 12px; }
+      .detail-mode .session-meta { font-size: 10px; }
+    }
+
     .table-wrap {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -437,6 +532,20 @@
     <!-- Toggles wrapper (hidden, replaced by inline) -->
     <div class="toggles-wrap" id="toggles-wrap" style="display:none;"></div>
 
+    <!-- Sessions preview (detail only) -->
+    <div class="sessions-preview" id="sessions-preview">
+      <div class="sessions-cols">
+        <div class="sessions-col">
+          <div class="sessions-col-header">À venir</div>
+          <div id="upcoming-list"></div>
+        </div>
+        <div class="sessions-col">
+          <div class="sessions-col-header">Récent</div>
+          <div id="recent-list"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Chart -->
     <div class="chart-wrap">
       <div class="chart-header">
@@ -488,6 +597,7 @@ if (isDetail) {
   document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Détail";
   document.getElementById("toggles").style.display = "flex";
   document.getElementById("table-wrap").style.display = "block";
+  document.getElementById("sessions-preview").style.display = "block";
   document.getElementById("week-nav").classList.add("visible");
 }
 
@@ -556,6 +666,66 @@ function renderStatus() {
   document.getElementById("status-label").textContent = s.label;
 }
 
+function sessionBadge(type) {
+  const map = {
+    "Course":     { color: C.course,  label: "Course" },
+    "Kettlebell": { color: C.kb,      label: "KB" },
+    "Kiné":       { color: C.kine,    label: "Kiné" },
+    "Repos":      { color: "var(--muted2)", label: "Repos" },
+  };
+  const t = map[type] || { color: "var(--muted2)", label: type };
+  return `<span class="session-type-badge" style="color:${t.color};border-color:${t.color};background:${t.color}18">${t.label}</span>`;
+}
+
+function fmtShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const days = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+  return days[d.getDay()] + " " + d.toLocaleDateString("fr-FR", { day:"numeric", month:"short" });
+}
+
+function renderSessionsPreview() {
+  if (!isDetail) return;
+  const today = new Date().toISOString().split("T")[0];
+  const raw = allData.raw || [];
+
+  // À venir : non validées, non archivées, date >= aujourd'hui, pas Repos
+  const upcoming = raw
+    .filter(s => !s.valide && s.date >= today && s.type !== "Repos")
+    .slice(0, 3);
+
+  // Récent : validées, triées par date desc, les 3 dernières
+  const recent = raw
+    .filter(s => s.valide && s.date < today)
+    .slice(-3)
+    .reverse();
+
+  function buildItems(list, isPast) {
+    if (!list.length) return `<div class="session-item"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
+    return list.map(s => {
+      let meta = fmtShort(s.date);
+      if (s.minutes) meta += ` · ${s.minutes} min`;
+
+      let evaHtml = "";
+      if (isPast && s.eva !== null) {
+        const c = s.eva === 0 ? "var(--green)" : s.eva < 2 ? "var(--orange)" : "var(--red)";
+        evaHtml = `<span class="session-eva" style="background:${c}"></span>`;
+      }
+
+      return `<div class="session-item">
+        ${sessionBadge(s.type)}
+        <div class="session-info">
+          <div class="session-title">${s.titre}</div>
+          <div class="session-meta">${evaHtml}${meta}</div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("upcoming-list").innerHTML = buildItems(upcoming, false);
+  document.getElementById("recent-list").innerHTML = buildItems(recent, true);
+}
+
 function render() {
   document.getElementById("loading").style.display = "none";
   document.getElementById("main").style.display = "block";
@@ -563,6 +733,7 @@ function render() {
     renderToggles();
     renderTable();
     updateWeekNav();
+    renderSessionsPreview();
   }
   renderKPIs();
   renderProgress();
