@@ -79,7 +79,8 @@ export default async function handler(req, res) {
 
       const blocMax = p["Bloc max"]?.number ?? 0;
 
-      return { titre, type, date: dateRaw, semaine, valide, statut, eva, minutes, blocMax };
+      const url = page.url ?? null;
+      return { titre, type, date: dateRaw, semaine, valide, statut, eva, minutes, blocMax, url };
     });
 
     // Trier par date

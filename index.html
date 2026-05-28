@@ -342,9 +342,34 @@
       padding: 9px 12px;
       border-bottom: 1px solid var(--border);
       transition: background .12s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
     }
     .session-item:last-child { border-bottom: none; }
     .session-item:hover { background: var(--bg); }
+
+    /* À venir — accent bleu */
+    .sessions-col.upcoming {
+      border-left: 3px solid var(--blue);
+    }
+    .sessions-col.upcoming .sessions-col-header {
+      color: var(--blue);
+    }
+
+    /* Récent — accent vert, items atténués */
+    .sessions-col.recent {
+      border-left: 3px solid var(--green);
+    }
+    .sessions-col.recent .sessions-col-header {
+      color: var(--green);
+    }
+    .sessions-col.recent .session-item {
+      opacity: .72;
+    }
+    .sessions-col.recent .session-item:hover {
+      opacity: 1;
+    }
 
     .session-type-badge {
       font-size: 8px;
@@ -535,12 +560,12 @@
     <!-- Sessions preview (detail only) -->
     <div class="sessions-preview" id="sessions-preview">
       <div class="sessions-cols">
-        <div class="sessions-col">
-          <div class="sessions-col-header">À venir</div>
+        <div class="sessions-col upcoming">
+          <div class="sessions-col-header">→ À venir</div>
           <div id="upcoming-list"></div>
         </div>
-        <div class="sessions-col">
-          <div class="sessions-col-header">Récent</div>
+        <div class="sessions-col recent">
+          <div class="sessions-col-header">✓ Récent</div>
           <div id="recent-list"></div>
         </div>
       </div>
@@ -701,7 +726,7 @@ function renderSessionsPreview() {
     .reverse();
 
   function buildItems(list, isPast) {
-    if (!list.length) return `<div class="session-item"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
+    if (!list.length) return `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
     return list.map(s => {
       let meta = fmtShort(s.date);
       if (s.minutes) meta += ` · ${s.minutes} min`;
@@ -712,13 +737,16 @@ function renderSessionsPreview() {
         evaHtml = `<span class="session-eva" style="background:${c}"></span>`;
       }
 
-      return `<div class="session-item">
+      const tag = s.url ? "a" : "div";
+      const href = s.url ? `href="${s.url}" target="_blank" rel="noopener"` : "";
+
+      return `<${tag} class="session-item" ${href}>
         ${sessionBadge(s.type)}
         <div class="session-info">
           <div class="session-title">${s.titre}</div>
           <div class="session-meta">${evaHtml}${meta}</div>
         </div>
-      </div>`;
+      </${tag}>`;
     }).join("");
   }
 
