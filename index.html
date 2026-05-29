@@ -104,35 +104,82 @@
 
     .topbar-right { display: flex; align-items: center; gap: 6px; }
 
-    .detail-link {
-      font-size: 10px;
-      font-family: var(--mono);
-      color: var(--muted2);
-      text-decoration: none;
-      letter-spacing: .06em;
-      padding: 3px 8px;
-      border-radius: 5px;
-      border: 1px solid var(--border);
+    /* Groupe de boutons icônes harmonisés */
+    .btn-group {
+      display: flex;
+      align-items: center;
       background: var(--bg);
-      transition: all .15s;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+      gap: 0;
     }
-    .detail-link:hover { color: var(--green); border-color: var(--green); background: var(--surface); }
 
-    .refresh-btn {
+    .btn-icon {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: none;
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: color .15s, background .15s;
+      padding: 0; line-height: 1;
+      text-decoration: none;
+      touch-action: manipulation;
+      flex-shrink: 0;
+    }
+    .btn-icon:first-child { border-left: none; }
+    .btn-icon:hover { color: var(--text); background: var(--surface); }
+    .btn-icon:active { transform: scale(.92); }
+    .btn-icon.spinning { animation: spin .6s linear infinite; }
+
+    /* Bouton Reporter — même hauteur, style pill séparé */
+    .shift-btn {
+      height: 28px;
+      display: flex; align-items: center;
+      font-size: 9px;
+      font-family: var(--mono);
+      color: var(--orange);
+      border: 1px solid var(--orange);
+      background: transparent;
+      padding: 0 10px;
+      border-radius: 7px;
+      cursor: pointer;
+      letter-spacing: .06em;
+      transition: all .15s;
+      text-transform: uppercase;
+      touch-action: manipulation;
+      white-space: nowrap;
+    }
+    .shift-btn:hover { background: var(--orange); color: #fff; }
+
+    /* Flèches semaine dans topbar */
+    .week-arrows {
+      display: none;
+      align-items: center;
+      gap: 0;
       background: var(--bg);
       border: 1px solid var(--border);
-      color: var(--muted2);
-      width: 26px; height: 26px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      display: flex; align-items: center; justify-content: center;
-      transition: all .2s;
-      padding: 0; line-height: 1;
+      border-radius: 7px;
+      overflow: hidden;
     }
-    .refresh-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface); }
-    .refresh-btn:active { transform: scale(.9); }
-    .refresh-btn.spinning { animation: spin .6s linear infinite; }
+    .week-arrows.visible { display: flex; }
+    .week-arrow {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none;
+      border-left: 1px solid var(--border);
+      color: var(--muted); font-size: 11px;
+      cursor: pointer;
+      transition: color .15s, background .15s;
+      padding: 0; touch-action: manipulation;
+    }
+    .week-arrow:first-child { border-left: none; }
+    .week-arrow:hover:not(:disabled) { color: var(--text); background: var(--surface); }
+    .week-arrow:disabled { opacity: .3; cursor: default; }
+
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── BODY ── */
@@ -638,18 +685,7 @@
     }
     .shift-btn:hover { background: var(--orange); color: #fff; }
 
-    .theme-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      padding: 0 2px;
-      line-height: 1;
-      opacity: .6;
-      transition: opacity .15s;
-      touch-action: manipulation;
-    }
-    .theme-btn:hover { opacity: 1; }
+    .theme-btn { display: none; } /* géré via .btn-icon */
 
     /* Override dark mode manuel */
     :root[data-theme="dark"] {
@@ -686,20 +722,6 @@
       --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 5px rgba(0,0,0,.04);
       --shadow-md: 0 3px 10px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.05);
     }
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--muted2);
-      width: 26px; height: 26px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex; align-items: center; justify-content: center;
-      transition: all .2s;
-      padding: 0; line-height: 1;
-      text-decoration: none;
-    }
-    .home-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface); }
-
     @media (prefers-color-scheme: dark) {
       .modal-overlay { background: rgba(0,0,0,.65); }
     }
@@ -726,9 +748,21 @@
 
 <div class="topbar">
   <div class="topbar-right">
-    <a class="home-btn" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener" title="Détail">⇗</a>
+    <!-- Flèches semaine (detail only) -->
+    <div class="week-arrows" id="week-arrows">
+      <button class="week-arrow" id="prev-week-top" disabled>←</button>
+      <button class="week-arrow" id="next-week-top" disabled>→</button>
+    </div>
+
+    <!-- Bouton reporter -->
     <button class="shift-btn" id="shift-btn" style="display:none">↷ Reporter</button>
-    <button class="refresh-btn" id="refresh-btn" title="Actualiser">↻</button>
+
+    <!-- Groupe icônes harmonisé -->
+    <div class="btn-group">
+      <a class="btn-icon" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener" title="Détail">⇗</a>
+      <button class="btn-icon" id="refresh-btn" title="Actualiser">↻</button>
+      <button class="btn-icon" id="theme-btn" title="Thème"></button>
+    </div>
   </div>
 
   <!-- Modal reporter -->
@@ -750,10 +784,8 @@
       </div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:5px;">
-    <div class="brand" id="topbar-brand">Rebuild 2026</div>
-    <button class="theme-btn" id="theme-btn" title="Changer le thème"></button>
-  </div>
+
+  <div class="brand" id="topbar-brand">Rebuild 2026</div>
 </div>
 
 <div id="loading">
@@ -877,8 +909,10 @@ if (isDetail) {
   document.getElementById("detail-link").href = "https://sportstats-inky.vercel.app/";
   document.getElementById("detail-link").title = "Accueil";
   document.getElementById("detail-link").textContent = "⌂";
-  document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Détail";
-  document.getElementById("shift-btn").style.display = "inline-block";
+  document.getElementById("topbar-brand").textContent = "Rebuild 2026";
+  document.getElementById("shift-btn").style.display = "flex";
+  document.getElementById("week-arrows").classList.add("visible");
+  document.getElementById("week-nav").style.display = "none"; // cacher l'ancien week-nav
   document.getElementById("toggles").style.display = "flex";
   document.getElementById("table-wrap").style.display = "block";
   document.getElementById("sessions-preview").style.display = "block";
@@ -1254,10 +1288,21 @@ function renderTable() {
 
 function updateWeekNav() {
   const s = allData.semaines[selectedIdx];
-  document.getElementById("week-label-name").textContent = fmt(s.debut) + " → " + fmt(addDays(s.debut, 6));
-  document.getElementById("week-label-pos").textContent = (selectedIdx+1) + " / " + allData.semaines.length;
-  document.getElementById("prev-week").disabled = selectedIdx === 0;
-  document.getElementById("next-week").disabled = selectedIdx === allData.semaines.length - 1;
+  // ancien week-nav (caché en detail, gardé pour widget)
+  if (document.getElementById("week-label-name"))
+    document.getElementById("week-label-name").textContent = fmt(s.debut) + " → " + fmt(addDays(s.debut, 6));
+  if (document.getElementById("week-label-pos"))
+    document.getElementById("week-label-pos").textContent = (selectedIdx+1) + " / " + allData.semaines.length;
+  // flèches topbar
+  const prevTop = document.getElementById("prev-week-top");
+  const nextTop = document.getElementById("next-week-top");
+  if (prevTop) prevTop.disabled = selectedIdx === 0;
+  if (nextTop) nextTop.disabled = selectedIdx === allData.semaines.length - 1;
+  // ancien (compatibilité)
+  const prev = document.getElementById("prev-week");
+  const next = document.getElementById("next-week");
+  if (prev) prev.disabled = selectedIdx === 0;
+  if (next) next.disabled = selectedIdx === allData.semaines.length - 1;
 }
 
 function updateSelection() {
@@ -1269,7 +1314,13 @@ function updateSelection() {
 
 function selectWeek(idx) { selectedIdx = idx; updateSelection(); }
 
-document.getElementById("prev-week").addEventListener("click", () => {
+document.getElementById("prev-week-top")?.addEventListener("click", () => {
+  if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
+});
+document.getElementById("next-week-top")?.addEventListener("click", () => {
+  if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); }
+});
+document.getElementById("prev-week")?.addEventListener("click", () => {
   if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
 });
 document.getElementById("next-week").addEventListener("click", () => {
@@ -1364,7 +1415,8 @@ function isDark() {
 
 function applyTheme(dark) {
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  document.getElementById("theme-btn").textContent = dark ? "☀️" : "🌙";
+  // ☾ contour lune = mode sombre visible, ✦ soleil contour = mode clair visible
+  document.getElementById("theme-btn").textContent = dark ? "☀︎" : "☾";
 }
 
 function initTheme() {
