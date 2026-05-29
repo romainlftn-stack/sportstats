@@ -474,7 +474,119 @@
     }
     .week-label-pos { font-size: 9px; color: var(--muted2); margin-top: 1px; }
 
-    /* ── LOADING ── */
+    /* ── MODAL DÉCALER ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      width: 280px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .modal-title {
+      font-size: 11px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .modal-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .modal-input {
+      width: 60px;
+      padding: 7px 10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      text-align: center;
+    }
+    .modal-input:focus { outline: none; border-color: var(--orange); }
+
+    .modal-input-label {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--muted);
+    }
+
+    .modal-btns { display: flex; gap: 8px; }
+
+    .modal-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      cursor: pointer;
+      transition: all .15s;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .modal-btn-cancel {
+      background: var(--bg);
+      color: var(--muted);
+    }
+    .modal-btn-cancel:hover { color: var(--text); border-color: var(--border2); }
+
+    .modal-btn-confirm {
+      background: var(--orange);
+      color: #fff;
+      border-color: var(--orange);
+    }
+    .modal-btn-confirm:hover { opacity: .85; }
+    .modal-btn-confirm:disabled { opacity: .5; cursor: default; }
+
+    .shift-btn {
+      font-size: 9px;
+      font-family: var(--mono);
+      color: var(--orange);
+      border: 1px solid var(--orange);
+      background: transparent;
+      padding: 3px 9px;
+      border-radius: 5px;
+      cursor: pointer;
+      letter-spacing: .06em;
+      transition: all .15s;
+      text-transform: uppercase;
+    }
+    .shift-btn:hover { background: var(--orange); color: #fff; }
+
+    @media (prefers-color-scheme: dark) {
+      .modal-overlay { background: rgba(0,0,0,.65); }
+    }
+
     #loading {
       text-align: center; padding: 42px 0;
       font-size: 10px; font-family: var(--mono);
@@ -498,7 +610,24 @@
 <div class="topbar">
   <div class="topbar-right">
     <a class="detail-link" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener">Détail →</a>
+    <button class="shift-btn" id="shift-btn" style="display:none">↷ Décaler</button>
     <button class="refresh-btn" id="refresh-btn" title="Actualiser">↻</button>
+  </div>
+
+  <!-- Modal décaler -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-title">Décaler les séances</div>
+      <div class="modal-sub">Toutes les séances "À faire" à partir d'aujourd'hui seront décalées du nombre de jours indiqué.</div>
+      <div class="modal-input-row">
+        <input class="modal-input" id="modal-days" type="number" min="1" max="30" value="1"/>
+        <span class="modal-input-label">jour(s)</span>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn modal-btn-cancel" id="modal-cancel">Annuler</button>
+        <button class="modal-btn modal-btn-confirm" id="modal-confirm">Confirmer</button>
+      </div>
+    </div>
   </div>
   <div class="brand" id="topbar-brand">Rebuild 2026</div>
 </div>
@@ -620,6 +749,7 @@ if (isDetail) {
   document.getElementById("detail-link").href = "https://sportstats-inky.vercel.app/";
   document.getElementById("detail-link").textContent = "← Accueil";
   document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Détail";
+  document.getElementById("shift-btn").style.display = "inline-block";
   document.getElementById("toggles").style.display = "flex";
   document.getElementById("table-wrap").style.display = "block";
   document.getElementById("sessions-preview").style.display = "block";
@@ -975,6 +1105,52 @@ document.getElementById("prev-week").addEventListener("click", () => {
 });
 document.getElementById("next-week").addEventListener("click", () => {
   if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); }
+});
+
+// ── MODAL DÉCALER ──
+document.getElementById("shift-btn")?.addEventListener("click", () => {
+  document.getElementById("modal-overlay").classList.add("open");
+  document.getElementById("modal-days").value = "1";
+  document.getElementById("modal-days").focus();
+});
+
+document.getElementById("modal-cancel")?.addEventListener("click", () => {
+  document.getElementById("modal-overlay").classList.remove("open");
+});
+
+document.getElementById("modal-overlay")?.addEventListener("click", (e) => {
+  if (e.target === e.currentTarget) document.getElementById("modal-overlay").classList.remove("open");
+});
+
+document.getElementById("modal-confirm")?.addEventListener("click", async () => {
+  const days = parseInt(document.getElementById("modal-days").value);
+  if (!days || days < 1 || days > 30) return;
+
+  const btn = document.getElementById("modal-confirm");
+  btn.disabled = true;
+  btn.textContent = "En cours…";
+
+  try {
+    const res = await fetch("/api/shift", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ days })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      document.getElementById("modal-overlay").classList.remove("open");
+      btn.textContent = "Confirmer";
+      btn.disabled = false;
+      await loadData(); // Rafraîchir les données
+    } else {
+      btn.textContent = data.error || "Erreur";
+      setTimeout(() => { btn.textContent = "Confirmer"; btn.disabled = false; }, 2000);
+    }
+  } catch (err) {
+    btn.textContent = "Erreur réseau";
+    setTimeout(() => { btn.textContent = "Confirmer"; btn.disabled = false; }, 2000);
+  }
 });
 
 document.getElementById("refresh-btn").addEventListener("click", loadData);
