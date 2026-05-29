@@ -372,14 +372,15 @@
     }
 
     .session-type-badge {
-      font-size: 8px;
+      font-size: 9px;
       font-family: var(--mono);
       text-transform: uppercase;
       letter-spacing: .06em;
-      padding: 2px 5px;
-      border-radius: 3px;
+      padding: 3px 7px;
+      border-radius: 4px;
       flex-shrink: 0;
-      margin-top: 2px;
+      margin-top: 1px;
+      font-weight: 600;
       border: 1px solid;
     }
 
@@ -392,7 +393,12 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-bottom: 2px;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+
+    .sessions-col.upcoming .session-title {
+      font-size: 12px;
     }
 
     .session-meta {
@@ -404,22 +410,25 @@
       gap: 6px;
     }
 
+    .session-when {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
     .session-eva {
       width: 5px; height: 5px;
       border-radius: 50%;
       flex-shrink: 0;
     }
 
-    @media (min-width: 900px) {
-      .detail-mode .sessions-preview {
-        grid-column: 1 / -1;
-        margin-bottom: 0;
-      }
-      .detail-mode .sessions-cols { gap: 12px; }
-      .detail-mode .session-item { padding: 10px 14px; }
-      .detail-mode .session-title { font-size: 12px; }
-      .detail-mode .session-meta { font-size: 10px; }
-    }
+    /* À venir — items plus lisibles */
+    .sessions-col.upcoming .session-item { padding: 10px 12px; }
+    .sessions-col.recent .session-item { opacity: .65; }
+    .sessions-col.recent .session-item:hover { opacity: 1; }
 
     .table-wrap {
       background: var(--surface);
@@ -629,7 +638,54 @@
     }
     .shift-btn:hover { background: var(--orange); color: #fff; }
 
-    .home-btn {
+    .theme-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 2px;
+      line-height: 1;
+      opacity: .6;
+      transition: opacity .15s;
+      touch-action: manipulation;
+    }
+    .theme-btn:hover { opacity: 1; }
+
+    /* Override dark mode manuel */
+    :root[data-theme="dark"] {
+      --bg:      #0c0e14;
+      --surface: #12151f;
+      --border:  #1c2133;
+      --border2: #242a3a;
+      --text:    #d0d8ef;
+      --muted:   #4a5470;
+      --muted2:  #2e3650;
+      --green:   #4ecb8d;
+      --blue:    #4f8fff;
+      --pink:    #ff5c9e;
+      --orange:  #ff8c42;
+      --red:     #ff6b6b;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 1px 5px rgba(0,0,0,.25);
+      --shadow-md: 0 3px 10px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
+    }
+
+    /* Override light mode manuel */
+    :root[data-theme="light"] {
+      --bg:       #F7F6F4;
+      --surface:  #ffffff;
+      --border:   #e8e6e3;
+      --border2:  #d0ccc6;
+      --text:     #1a1a18;
+      --muted:    #8f8b84;
+      --muted2:   #bcb8b1;
+      --green:    #1a9456;
+      --blue:     #2c5fe0;
+      --pink:     #d63f74;
+      --orange:   #d4620a;
+      --red:      #c0392b;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05), 0 1px 5px rgba(0,0,0,.04);
+      --shadow-md: 0 3px 10px rgba(0,0,0,.09), 0 1px 3px rgba(0,0,0,.05);
+    }
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--muted2);
@@ -694,7 +750,10 @@
       </div>
     </div>
   </div>
-  <div class="brand" id="topbar-brand">Rebuild 2026</div>
+  <div style="display:flex;align-items:center;gap:5px;">
+    <div class="brand" id="topbar-brand">Rebuild 2026</div>
+    <button class="theme-btn" id="theme-btn" title="Changer le thème"></button>
+  </div>
 </div>
 
 <div id="loading">
@@ -705,21 +764,25 @@
 <div id="main" style="display:none">
   <div class="widget-body">
 
-    <!-- Statut automatique semaine -->
-    <div id="status-block" style="display:none; margin-bottom:10px;">
-      <div id="status-inner" style="
-        border-radius:8px;
-        padding:9px 12px;
-        font-size:10px;
-        font-family:var(--mono);
-        letter-spacing:.06em;
+    <!-- Hero semaine courante (fusionné statut + semaine) -->
+    <div id="week-hero" style="display:none; margin-bottom:10px;">
+      <div id="week-hero-inner" style="
+        border-radius:10px;
+        padding:12px 14px 11px;
         border:1px solid;
-        display:flex;
-        align-items:center;
-        gap:8px;
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
       ">
-        <span id="status-icon"></span>
-        <span id="status-label"></span>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div>
+            <div id="hero-week-range" style="font-size:13px; font-weight:600; font-family:var(--mono); color:var(--text); margin-bottom:4px;"></div>
+            <div id="hero-status-label" style="font-size:10px; font-family:var(--mono); color:var(--muted); display:flex; align-items:center; gap:5px;"></div>
+          </div>
+          <div style="text-align:right; flex-shrink:0;">
+            <div id="hero-ratio" style="font-size:20px; font-weight:600; font-family:var(--mono);"></div>
+            <div id="hero-minutes" style="font-size:9px; font-family:var(--mono); color:var(--muted); margin-top:2px;"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -858,16 +921,11 @@ function addDays(iso, n) {
 function computeStatus(s) {
   if (!s) return null;
   const maxEVA = s.evaList?.length ? Math.max(...s.evaList) : null;
-
-  if (maxEVA !== null && maxEVA >= 3)
-    return { label: "Stop — ITBS actif · pas de course", color: "var(--red)",    bg: "rgba(192,57,43,.08)",  icon: "🛑" };
-  if (maxEVA !== null && maxEVA >= 1.5)
-    return { label: "Surveiller l'ITBS · EVA 1-2 détecté", color: "var(--orange)", bg: "rgba(212,98,10,.08)", icon: "⚠️" };
-  if (s.realisees >= s.planifiees && s.planifiees > 0)
-    return { label: "Semaine complétée · toutes les séances",  color: "var(--green)",  bg: "rgba(26,148,86,.08)",  icon: "✓" };
-  if (s.realisees > 0)
-    return { label: `En cours · ${s.realisees} / ${s.planifiees} séances réalisées`, color: "var(--blue)", bg: "rgba(44,95,224,.08)", icon: "→" };
-  return { label: "Semaine non démarrée",  color: "var(--muted2)", bg: "transparent", icon: "○" };
+  if (maxEVA !== null && maxEVA >= 3)   return { label:"Stop — ITBS actif", color:"var(--red)",    icon:"🛑" };
+  if (maxEVA !== null && maxEVA >= 1.5) return { label:"ITBS 1-2 · surveiller", color:"var(--orange)", icon:"⚠️" };
+  if (s.realisees >= s.planifiees && s.planifiees > 0) return { label:"Semaine complétée", color:"var(--green)", icon:"✓" };
+  if (s.realisees > 0) return { label:`En cours · ${s.realisees}/${s.planifiees}`, color:"var(--blue)", icon:"→" };
+  return { label:"Pas encore démarrée", color:"var(--muted2)", icon:"○" };
 }
 
 function renderStatus() {
@@ -875,27 +933,48 @@ function renderStatus() {
   const weekToShow = isDetail
     ? allData.semaines[selectedIdx]
     : allData.semaines.find(s => today >= s.debut && today <= addDays(s.debut, 6));
-  const s = computeStatus(weekToShow);
-  const block = document.getElementById("status-block");
-  if (!s) { block.style.display = "none"; return; }
-  block.style.display = "block";
-  const inner = document.getElementById("status-inner");
-  inner.style.color = s.color;
-  inner.style.borderColor = s.color;
-  inner.style.background = s.bg;
-  document.getElementById("status-icon").textContent = s.icon;
-  document.getElementById("status-label").textContent = s.label;
+
+  const hero = document.getElementById("week-hero");
+  if (!weekToShow) { hero.style.display = "none"; return; }
+  hero.style.display = "block";
+
+  const st = computeStatus(weekToShow);
+  const inner = document.getElementById("week-hero-inner");
+  inner.style.borderColor = st.color;
+  inner.style.background = `color-mix(in srgb, ${st.color} 5%, var(--surface))`;
+
+  document.getElementById("hero-week-range").textContent =
+    fmt(weekToShow.debut) + " → " + fmt(addDays(weekToShow.debut, 6));
+  document.getElementById("hero-status-label").innerHTML =
+    `<span style="color:${st.color}">${st.icon}&nbsp;${st.label}</span>`;
+  document.getElementById("hero-ratio").style.color = st.color;
+  document.getElementById("hero-ratio").textContent =
+    weekToShow.course + "/" + weekToShow.coursePlanifiees + " runs";
+  document.getElementById("hero-minutes").textContent =
+    weekToShow.minutesCourse ? weekToShow.minutesCourse + " min" : "aucune course";
 }
 
 function sessionBadge(type) {
   const map = {
-    "Course":     { color: C.course,  label: "Course" },
+    "Course":     { color: C.course,  label: "RUN" },
     "Kettlebell": { color: C.kb,      label: "KB" },
     "Kiné":       { color: C.kine,    label: "Kiné" },
     "Repos":      { color: "var(--muted2)", label: "Repos" },
   };
   const t = map[type] || { color: "var(--muted2)", label: type };
   return `<span class="session-type-badge" style="color:${t.color};border-color:${t.color};background:${t.color}18">${t.label}</span>`;
+}
+
+function fmtWhen(iso) {
+  if (!iso) return "";
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(iso); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today) / (1000*60*60*24));
+  if (diff === 0) return { label:"Aujourd'hui", color: "var(--orange)" };
+  if (diff === 1) return { label:"Demain",      color: "var(--blue)" };
+  if (diff === -1) return { label:"Hier",        color: "var(--red)" };
+  if (diff > 0)   return { label:`Dans ${diff}j`, color: "var(--muted)" };
+  return { label:`Il y a ${Math.abs(diff)}j`, color: "var(--muted2)" };
 }
 
 function fmtShort(iso) {
@@ -929,14 +1008,21 @@ function renderSessionsPreview() {
   function buildItems(list, isPast, isMissed) {
     if (!list.length) return `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
     return list.map(s => {
-      let meta = fmtShort(s.date);
-      if (s.minutes) meta += ` · ${s.minutes} min`;
+      const when = !isPast && !isMissed ? fmtWhen(s.date) : null;
+      let metaParts = [];
+      if (isMissed) metaParts.push(fmtShort(s.date));
+      if (isPast) metaParts.push(fmtShort(s.date));
+      if (s.minutes) metaParts.push(s.minutes + " min");
 
       let evaHtml = "";
       if (isPast && s.eva !== null) {
         const c = s.eva === 0 ? "var(--green)" : s.eva < 2 ? "var(--orange)" : "var(--red)";
         evaHtml = `<span class="session-eva" style="background:${c}"></span>`;
       }
+
+      const whenHtml = when
+        ? `<span class="session-when" style="color:${when.color};background:${when.color}15">${when.label}</span>`
+        : "";
 
       const tag = s.url ? "a" : "div";
       const href = s.url ? `href="${s.url}" target="_blank" rel="noopener"` : "";
@@ -949,7 +1035,7 @@ function renderSessionsPreview() {
         ${badge}
         <div class="session-info">
           <div class="session-title">${s.titre}</div>
-          <div class="session-meta">${evaHtml}${meta}</div>
+          <div class="session-meta">${evaHtml}${whenHtml}${metaParts.length ? metaParts.join(" · ") : ""}</div>
         </div>
       </${tag}>`;
     }).join("");
@@ -1269,8 +1355,36 @@ document.getElementById("modal-confirm")?.addEventListener("click", async () => 
   }
 });
 
+// ── THEME TOGGLE ──
+function isDark() {
+  const saved = localStorage.getItem("theme");
+  if (saved) return saved === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyTheme(dark) {
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  document.getElementById("theme-btn").textContent = dark ? "☀️" : "🌙";
+}
+
+function initTheme() {
+  applyTheme(isDark());
+}
+
+document.getElementById("theme-btn")?.addEventListener("click", () => {
+  const currentlyDark = isDark();
+  localStorage.setItem("theme", currentlyDark ? "light" : "dark");
+  applyTheme(!currentlyDark);
+});
+
+// Suivre les changements système si pas de préférence manuelle
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches);
+});
+
+initTheme();
+
 document.getElementById("refresh-btn").addEventListener("click", loadData);
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => location.reload());
 
 loadData();
 </script>
