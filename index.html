@@ -524,12 +524,13 @@
       width: 60px;
       padding: 7px 10px;
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 16px; /* iOS ne zoome pas si >= 16px */
       background: var(--bg);
       border: 1px solid var(--border2);
       border-radius: 6px;
       color: var(--text);
       text-align: center;
+      touch-action: manipulation;
     }
     .modal-input:focus { outline: none; border-color: var(--orange); }
 
@@ -568,6 +569,50 @@
     .modal-btn-confirm:hover { opacity: .85; }
     .modal-btn-confirm:disabled { opacity: .5; cursor: default; }
 
+    .session-item.missed {
+      border-left: 2px solid var(--red);
+      background: color-mix(in srgb, var(--red) 4%, var(--surface));
+    }
+    .session-item.missed:hover { background: color-mix(in srgb, var(--red) 8%, var(--surface)); }
+
+    .missed-badge {
+      font-size: 8px; font-family: var(--mono);
+      color: var(--red); border: 1px solid var(--red);
+      padding: 2px 5px; border-radius: 3px;
+      flex-shrink: 0; margin-top: 2px;
+      background: color-mix(in srgb, var(--red) 8%, transparent);
+    }
+
+    .modal-missed-list {
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .modal-missed-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 10px;
+      font-family: var(--mono);
+      transition: background .12s;
+    }
+    .modal-missed-item:last-child { border-bottom: none; }
+    .modal-missed-item:hover { background: var(--bg); }
+    .modal-missed-item input[type="radio"] { accent-color: var(--orange); }
+    .modal-missed-item label { cursor: pointer; color: var(--text); flex: 1; }
+    .modal-missed-date { color: var(--muted); font-size: 9px; }
+
+    .modal-divider {
+      font-size: 9px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--muted2); margin-bottom: 10px;
+    }
+
     .shift-btn {
       font-size: 9px;
       font-family: var(--mono);
@@ -580,8 +625,24 @@
       letter-spacing: .06em;
       transition: all .15s;
       text-transform: uppercase;
+      touch-action: manipulation;
     }
     .shift-btn:hover { background: var(--orange); color: #fff; }
+
+    .home-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+      padding: 0; line-height: 1;
+      text-decoration: none;
+    }
+    .home-btn:hover { color: var(--text); border-color: var(--border2); background: var(--surface); }
 
     @media (prefers-color-scheme: dark) {
       .modal-overlay { background: rgba(0,0,0,.65); }
@@ -609,19 +670,23 @@
 
 <div class="topbar">
   <div class="topbar-right">
-    <a class="detail-link" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener">Détail →</a>
-    <button class="shift-btn" id="shift-btn" style="display:none">↷ Décaler</button>
+    <a class="home-btn" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener" title="Détail">⇗</a>
+    <button class="shift-btn" id="shift-btn" style="display:none">↷ Reporter</button>
     <button class="refresh-btn" id="refresh-btn" title="Actualiser">↻</button>
   </div>
 
-  <!-- Modal décaler -->
+  <!-- Modal reporter -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal">
-      <div class="modal-title">Décaler les séances</div>
-      <div class="modal-sub">Toutes les séances "À faire" à partir d'aujourd'hui seront décalées du nombre de jours indiqué.</div>
+      <div class="modal-title" id="modal-title">Reporter les séances</div>
+      <div id="modal-missed-section" style="display:none">
+        <div class="modal-sub" style="margin-bottom:8px;color:var(--red)">⚠ Séances non réalisées</div>
+        <div class="modal-missed-list" id="modal-missed-list"></div>
+      </div>
+      <div class="modal-divider" id="modal-divider">Reprendre dans</div>
       <div class="modal-input-row">
-        <input class="modal-input" id="modal-days" type="number" min="1" max="30" value="1"/>
-        <span class="modal-input-label">jour(s)</span>
+        <input class="modal-input" id="modal-days" type="number" min="0" max="30" value="0" inputmode="numeric" pattern="[0-9]*"/>
+        <span class="modal-input-label">jour(s) · 0 = aujourd'hui</span>
       </div>
       <div class="modal-btns">
         <button class="modal-btn modal-btn-cancel" id="modal-cancel">Annuler</button>
@@ -747,7 +812,8 @@ let selectedIdx = 0;
 if (isDetail) {
   document.body.classList.add("detail-mode");
   document.getElementById("detail-link").href = "https://sportstats-inky.vercel.app/";
-  document.getElementById("detail-link").textContent = "← Accueil";
+  document.getElementById("detail-link").title = "Accueil";
+  document.getElementById("detail-link").textContent = "⌂";
   document.getElementById("topbar-brand").textContent = "Rebuild 2026 · Détail";
   document.getElementById("shift-btn").style.display = "inline-block";
   document.getElementById("toggles").style.display = "flex";
@@ -844,7 +910,12 @@ function renderSessionsPreview() {
   const today = new Date().toISOString().split("T")[0];
   const raw = allData.raw || [];
 
-  // À venir : non validées, non archivées, date >= aujourd'hui, pas Repos
+  // Manquées : À faire, date passée, pas Repos, pas Reporté
+  const missed = raw
+    .filter(s => !s.valide && s.date < today && s.type !== "Repos" && s.statut !== "Reporté")
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  // À venir : À faire, date >= aujourd'hui, pas Repos
   const upcoming = raw
     .filter(s => !s.valide && s.date >= today && s.type !== "Repos")
     .slice(0, 3);
@@ -855,7 +926,7 @@ function renderSessionsPreview() {
     .slice(-3)
     .reverse();
 
-  function buildItems(list, isPast) {
+  function buildItems(list, isPast, isMissed) {
     if (!list.length) return `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
     return list.map(s => {
       let meta = fmtShort(s.date);
@@ -869,9 +940,13 @@ function renderSessionsPreview() {
 
       const tag = s.url ? "a" : "div";
       const href = s.url ? `href="${s.url}" target="_blank" rel="noopener"` : "";
+      const badge = isMissed
+        ? `<span class="missed-badge">Manquée</span>`
+        : sessionBadge(s.type);
+      const cls = isMissed ? "session-item missed" : "session-item";
 
-      return `<${tag} class="session-item" ${href}>
-        ${sessionBadge(s.type)}
+      return `<${tag} class="${cls}" ${href}>
+        ${badge}
         <div class="session-info">
           <div class="session-title">${s.titre}</div>
           <div class="session-meta">${evaHtml}${meta}</div>
@@ -880,8 +955,16 @@ function renderSessionsPreview() {
     }).join("");
   }
 
-  document.getElementById("upcoming-list").innerHTML = buildItems(upcoming, false);
-  document.getElementById("recent-list").innerHTML = buildItems(recent, true);
+  // Colonne À venir : manquées d'abord (en rouge), puis à venir
+  const upcomingHtml = buildItems(missed, false, true) + buildItems(upcoming, false, false);
+  document.getElementById("upcoming-list").innerHTML = missed.length || upcoming.length
+    ? (missed.length ? buildItems(missed, false, true) : "") + buildItems(upcoming, false, false)
+    : `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
+
+  document.getElementById("recent-list").innerHTML = buildItems(recent, true, false);
+
+  // Stocker les manquées pour la modal
+  window._missedSessions = missed;
 }
 
 function render() {
@@ -1107,11 +1190,39 @@ document.getElementById("next-week").addEventListener("click", () => {
   if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); }
 });
 
-// ── MODAL DÉCALER ──
+// ── MODAL REPORTER ──
 document.getElementById("shift-btn")?.addEventListener("click", () => {
+  const missed = window._missedSessions || [];
+
+  // Construire la modal selon les séances manquées
+  const missedSection = document.getElementById("modal-missed-section");
+  const missedList = document.getElementById("modal-missed-list");
+  const divider = document.getElementById("modal-divider");
+
+  if (missed.length) {
+    missedSection.style.display = "block";
+    divider.textContent = "Reprendre dans";
+    missedList.innerHTML = missed.map((s, i) => `
+      <label class="modal-missed-item">
+        <input type="radio" name="missed-from" value="${i}" ${i === 0 ? "checked" : ""}/>
+        <span>
+          <span style="font-size:10px">${s.titre}</span><br>
+          <span class="modal-missed-date">${fmtShort(s.date)}</span>
+        </span>
+      </label>
+    `).join("") + `
+      <label class="modal-missed-item">
+        <input type="radio" name="missed-from" value="today"/>
+        <span style="font-size:10px;color:var(--muted)">Ignorer les manquées · reprendre depuis aujourd'hui</span>
+      </label>
+    `;
+  } else {
+    missedSection.style.display = "none";
+    divider.textContent = "Décaler de";
+  }
+
+  document.getElementById("modal-days").value = "0";
   document.getElementById("modal-overlay").classList.add("open");
-  document.getElementById("modal-days").value = "1";
-  document.getElementById("modal-days").focus();
 });
 
 document.getElementById("modal-cancel")?.addEventListener("click", () => {
@@ -1123,8 +1234,13 @@ document.getElementById("modal-overlay")?.addEventListener("click", (e) => {
 });
 
 document.getElementById("modal-confirm")?.addEventListener("click", async () => {
-  const days = parseInt(document.getElementById("modal-days").value);
-  if (!days || days < 1 || days > 30) return;
+  const days = parseInt(document.getElementById("modal-days").value) || 0;
+  if (days < 0 || days > 30) return;
+
+  const missed = window._missedSessions || [];
+  const radioVal = document.querySelector('input[name="missed-from"]:checked')?.value;
+  const includeMissed = missed.length > 0 && radioVal !== "today";
+  const fromIdx = includeMissed && radioVal !== undefined ? parseInt(radioVal) : null;
 
   const btn = document.getElementById("modal-confirm");
   btn.disabled = true;
@@ -1134,7 +1250,7 @@ document.getElementById("modal-confirm")?.addEventListener("click", async () => 
     const res = await fetch("/api/shift", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ days })
+      body: JSON.stringify({ days, includeMissed, fromIdx })
     });
     const data = await res.json();
 
@@ -1142,7 +1258,7 @@ document.getElementById("modal-confirm")?.addEventListener("click", async () => 
       document.getElementById("modal-overlay").classList.remove("open");
       btn.textContent = "Confirmer";
       btn.disabled = false;
-      await loadData(); // Rafraîchir les données
+      await loadData();
     } else {
       btn.textContent = data.error || "Erreur";
       setTimeout(() => { btn.textContent = "Confirmer"; btn.disabled = false; }, 2000);
