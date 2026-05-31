@@ -1294,6 +1294,7 @@ function toggleLine(key) {
 function renderChart() {
   if (chartInst) chartInst.destroy();
 
+  const dark = isDark();
   const gridColor = dark ? "#1c2133" : "#eeece9";
   const tickColor = dark ? "#2e3650" : "#c4c0ba";
 
