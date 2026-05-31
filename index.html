@@ -787,6 +787,40 @@
         transition-duration: 0.01ms !important;
       }
     }
+
+    /* ── KPI CONTEXT LABEL (detail mode) ── */
+    #kpi-context {
+      display: none;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      padding-bottom: 2px;
+    }
+    .detail-mode #kpi-context { display: block; }
+    @media (min-width: 900px) {
+      .detail-mode #kpi-context { grid-column: 1 / -1; padding-bottom: 0; }
+    }
+
+    /* ── BARRE NAV SEMAINE MOBILE (detail only) ── */
+    .week-bar-mobile { display: none; }
+    @media (max-width: 768px) {
+      .detail-mode .week-bar-mobile {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0; right: 0;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        z-index: 9;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+        box-shadow: 0 -4px 16px rgba(0,0,0,.07);
+      }
+    }
   </style>
 </head>
 <body>
@@ -862,6 +896,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Contexte semaine (detail mode) -->
+    <div id="kpi-context"></div>
 
     <!-- KPIs -->
     <div class="kpis" id="kpis"></div>
@@ -1068,29 +1105,52 @@ function renderSessionsPreview() {
   const today = new Date().toISOString().split("T")[0];
   const raw = allData.raw || [];
 
-  // Manquées : À faire, date passée, pas Repos, pas Reporté
-  const missed = raw
-    .filter(s => !s.valide && s.date < today && s.type !== "Repos" && s.statut !== "Reporté")
+  const selectedWeek = allData.semaines[selectedIdx];
+  if (!selectedWeek) return;
+
+  const weekStart = selectedWeek.debut;
+  const weekEnd = addDays(selectedWeek.debut, 6);
+  const isPastWeek = weekEnd < today;
+  const isFutureWeek = weekStart > today;
+  const isCurrentWeek = !isPastWeek && !isFutureWeek;
+
+  // Sessions de la semaine sélectionnée (hors Repos et Reporté)
+  const weekSessions = raw.filter(s =>
+    s.date >= weekStart && s.date <= weekEnd &&
+    s.type !== "Repos" && s.statut !== "Reporté"
+  );
+
+  const done = weekSessions
+    .filter(s => s.valide)
     .sort((a,b) => a.date.localeCompare(b.date));
 
-  // À venir : À faire, date >= aujourd'hui, pas Repos
-  const upcoming = raw
-    .filter(s => !s.valide && s.date >= today && s.type !== "Repos")
-    .slice(0, 3);
+  const notDone = weekSessions
+    .filter(s => !s.valide)
+    .sort((a,b) => a.date.localeCompare(b.date));
 
-  // Récent : validées, triées par date desc, les 3 dernières
-  const recent = raw
-    .filter(s => s.valide && s.date < today)
-    .slice(-3)
-    .reverse();
+  const missedThisWeek = isCurrentWeek
+    ? notDone.filter(s => s.date < today)
+    : (isPastWeek ? notDone : []);
+  const upcomingThisWeek = isCurrentWeek
+    ? notDone.filter(s => s.date >= today)
+    : (isFutureWeek ? notDone : []);
+
+  // Mettre à jour les en-têtes des colonnes
+  const upcomingHeader = document.querySelector(".sessions-col.upcoming .sessions-col-header");
+  const recentHeader = document.querySelector(".sessions-col.recent .sessions-col-header");
+  if (upcomingHeader) {
+    if (isPastWeek)      upcomingHeader.textContent = "✗ Manquées";
+    else if (isFutureWeek) upcomingHeader.textContent = "◎ Prévues";
+    else                 upcomingHeader.textContent = "→ À venir";
+  }
+  if (recentHeader) recentHeader.textContent = "✓ Réalisées";
 
   function buildItems(list, isPast, isMissed) {
-    if (!list.length) return `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
+    if (!list.length) return "";
     return list.map(s => {
       const when = !isPast && !isMissed ? fmtWhen(s.date) : null;
       let metaParts = [];
-      if (isMissed) metaParts.push(fmtShort(s.date));
-      if (isPast) metaParts.push(fmtShort(s.date));
+      if (isMissed || isPast) metaParts.push(fmtShort(s.date));
       if (s.minutes) metaParts.push(s.minutes + " min");
 
       let evaHtml = "";
@@ -1120,16 +1180,30 @@ function renderSessionsPreview() {
     }).join("");
   }
 
-  // Colonne À venir : manquées d'abord (en rouge), puis à venir
-  const upcomingHtml = buildItems(missed, false, true) + buildItems(upcoming, false, false);
-  document.getElementById("upcoming-list").innerHTML = missed.length || upcoming.length
-    ? (missed.length ? buildItems(missed, false, true) : "") + buildItems(upcoming, false, false)
-    : `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
+  const empty = `<div class="session-item" style="cursor:default"><div class="session-meta" style="color:var(--muted2)">Aucune séance</div></div>`;
 
-  document.getElementById("recent-list").innerHTML = buildItems(recent, true, false);
+  // Colonne 1 : manquées + à venir (selon contexte)
+  let col1Html;
+  if (isPastWeek) {
+    col1Html = missedThisWeek.length ? buildItems(missedThisWeek, false, true) : empty;
+  } else if (isFutureWeek) {
+    col1Html = upcomingThisWeek.length ? buildItems(upcomingThisWeek, false, false) : empty;
+  } else {
+    const parts = (missedThisWeek.length ? buildItems(missedThisWeek, false, true) : "")
+      + (upcomingThisWeek.length ? buildItems(upcomingThisWeek, false, false) : "");
+    col1Html = parts || empty;
+  }
 
-  // Stocker les manquées pour la modal
-  window._missedSessions = missed;
+  // Colonne 2 : réalisées
+  const col2Html = done.length ? buildItems(done, true, false) : empty;
+
+  document.getElementById("upcoming-list").innerHTML = col1Html;
+  document.getElementById("recent-list").innerHTML = col2Html;
+
+  // Stocker toutes les manquées globales pour la modal Reporter
+  window._missedSessions = raw
+    .filter(s => !s.valide && s.date < today && s.type !== "Repos" && s.statut !== "Reporté")
+    .sort((a,b) => a.date.localeCompare(b.date));
 }
 
 function render() {
@@ -1166,12 +1240,18 @@ function renderKPIs() {
   ];
 
   document.getElementById("kpis").innerHTML = fields.map(f => `
-    <div class="kpi" style="border-left-color:${f.color}">
+    <div class="kpi">
       <div class="kpi-label">${f.label}</div>
       <div class="kpi-val" style="color:${f.color}">${f.val}</div>
       <div class="kpi-sub">${f.sub}</div>
     </div>
   `).join("");
+
+  if (isDetail) {
+    const s = allData.semaines[selectedIdx];
+    const ctx = document.getElementById("kpi-context");
+    if (ctx) ctx.textContent = "Semaine " + fmt(s.debut) + " → " + fmt(addDays(s.debut, 6));
+  }
 }
 
 function renderProgress() {
@@ -1333,28 +1413,45 @@ function renderTable() {
 
 function updateWeekNav() {
   const s = allData.semaines[selectedIdx];
-  // ancien week-nav (caché en detail, gardé pour widget)
-  if (document.getElementById("week-label-name"))
-    document.getElementById("week-label-name").textContent = fmt(s.debut) + " → " + fmt(addDays(s.debut, 6));
-  if (document.getElementById("week-label-pos"))
-    document.getElementById("week-label-pos").textContent = (selectedIdx+1) + " / " + allData.semaines.length;
-  // flèches topbar
+  const range = fmt(s.debut) + " → " + fmt(addDays(s.debut, 6));
+  const pos = (selectedIdx+1) + " / " + allData.semaines.length;
+  const atStart = selectedIdx === 0;
+  const atEnd = selectedIdx === allData.semaines.length - 1;
+
+  // Ancien week-nav (caché en detail, gardé pour widget)
+  const labelName = document.getElementById("week-label-name");
+  const labelPos = document.getElementById("week-label-pos");
+  if (labelName) labelName.textContent = range;
+  if (labelPos) labelPos.textContent = pos;
+
+  // Flèches topbar
   const prevTop = document.getElementById("prev-week-top");
   const nextTop = document.getElementById("next-week-top");
-  if (prevTop) prevTop.disabled = selectedIdx === 0;
-  if (nextTop) nextTop.disabled = selectedIdx === allData.semaines.length - 1;
-  // ancien (compatibilité)
+  if (prevTop) prevTop.disabled = atStart;
+  if (nextTop) nextTop.disabled = atEnd;
+
+  // Flèches anciens (compatibilité)
   const prev = document.getElementById("prev-week");
   const next = document.getElementById("next-week");
-  if (prev) prev.disabled = selectedIdx === 0;
-  if (next) next.disabled = selectedIdx === allData.semaines.length - 1;
+  if (prev) prev.disabled = atStart;
+  if (next) next.disabled = atEnd;
+
+  // Barre mobile
+  const prevMob = document.getElementById("prev-week-mob");
+  const nextMob = document.getElementById("next-week-mob");
+  const labelMob = document.getElementById("week-label-mob");
+  const posMob = document.getElementById("week-pos-mob");
+  if (prevMob) prevMob.disabled = atStart;
+  if (nextMob) nextMob.disabled = atEnd;
+  if (labelMob) labelMob.textContent = range;
+  if (posMob) posMob.textContent = pos;
 }
 
 function updateSelection() {
   renderKPIs();
   renderStatus();
   renderChart();
-  if (isDetail) { renderTable(); updateWeekNav(); }
+  if (isDetail) { renderTable(); updateWeekNav(); renderSessionsPreview(); }
 }
 
 function selectWeek(idx) { selectedIdx = idx; updateSelection(); }
@@ -1483,7 +1580,44 @@ initTheme();
 
 document.getElementById("refresh-btn").addEventListener("click", loadData);
 
+// ── BARRE MOBILE ──
+document.getElementById("prev-week-mob")?.addEventListener("click", () => {
+  if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
+});
+document.getElementById("next-week-mob")?.addEventListener("click", () => {
+  if (selectedIdx < (allData?.semaines?.length ?? 1) - 1) { selectedIdx++; updateSelection(); }
+});
+
+// ── RACCOURCIS CLAVIER ──
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+  if (e.key === "Escape") {
+    document.getElementById("modal-overlay").classList.remove("open");
+    return;
+  }
+
+  if (!isDetail || !allData) return;
+
+  if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+    if (selectedIdx > 0) { selectedIdx--; updateSelection(); e.preventDefault(); }
+  } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+    if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); e.preventDefault(); }
+  }
+});
+
 loadData();
 </script>
+
+<!-- Barre navigation semaine mobile (detail only) -->
+<div class="week-bar-mobile" id="week-bar-mobile">
+  <button class="week-arrow" id="prev-week-mob" aria-label="Semaine précédente">←</button>
+  <div class="week-label" style="text-align:center;">
+    <div id="week-label-mob" style="font-size:11px;"></div>
+    <div class="week-label-pos" id="week-pos-mob"></div>
+  </div>
+  <button class="week-arrow" id="next-week-mob" aria-label="Semaine suivante">→</button>
+</div>
+
 </body>
 </html>
