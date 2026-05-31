@@ -1591,7 +1591,7 @@ initTheme();
 
 document.getElementById("refresh-btn").addEventListener("click", loadData);
 
-// ── BARRE MOBILE ── (div is after </script>, so attach after DOM is ready)
+// ── BARRE MOBILE ── (div is after script tag, attach after DOM is ready)
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("prev-week-mob")?.addEventListener("click", () => {
     if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
