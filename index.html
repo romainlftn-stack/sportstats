@@ -1009,7 +1009,7 @@ async function loadData() {
     const res = await fetch("/api/stats");
     allData = await res.json();
     if (!allData.semaines?.length) throw new Error("Aucune donnée Notion.");
-    const today = new Date().toISOString().split("T")[0];
+    const today = getToday();
     const curIdx = allData.semaines.findIndex(s => today >= s.debut && today <= addDays(s.debut, 6));
     selectedIdx = curIdx !== -1 ? curIdx : allData.semaines.length - 1;
     render();
@@ -1018,6 +1018,13 @@ async function loadData() {
   } finally {
     btn.classList.remove("spinning");
   }
+}
+
+function getToday() {
+  const d = new Date();
+  return d.getFullYear() + "-"
+    + String(d.getMonth() + 1).padStart(2, "0") + "-"
+    + String(d.getDate()).padStart(2, "0");
 }
 
 function fmt(iso) {
@@ -1041,7 +1048,7 @@ function computeStatus(s) {
 }
 
 function renderStatus() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getToday();
   const weekToShow = isDetail
     ? allData.semaines[selectedIdx]
     : allData.semaines.find(s => today >= s.debut && today <= addDays(s.debut, 6));
@@ -1101,7 +1108,7 @@ function fmtShort(iso) {
 
 function renderSessionsPreview() {
   if (!isDetail) return;
-  const today = new Date().toISOString().split("T")[0];
+  const today = getToday();
   const raw = allData.raw || [];
 
   const selectedWeek = allData.semaines[selectedIdx];
@@ -1300,7 +1307,7 @@ function renderChart() {
 
   if (!isDetail) {
     // Widget: mini line chart — uniquement semaines passées ou en cours
-    const today = new Date().toISOString().split("T")[0];
+    const today = getToday();
     const done = allData.semaines.filter(s => s.debut <= today).slice(-8);
     chartInst = new Chart(document.getElementById("chart").getContext("2d"), {
       type: "line",
@@ -1326,7 +1333,7 @@ function renderChart() {
   }
 
   // Detail: fenêtre de 4 semaines — uniquement semaines passées ou en cours
-  const today = new Date().toISOString().split("T")[0];
+  const today = getToday();
   const semainesDone = allData.semaines.filter(s => s.debut <= today);
   const clampedIdx = Math.min(selectedIdx, semainesDone.length - 1);
   const winStart = Math.max(0, clampedIdx - 3);
@@ -1389,7 +1396,7 @@ function renderChart() {
 }
 
 function renderTable() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getToday();
   document.getElementById("table-body").innerHTML =
     [...allData.semaines].reverse().map((s, i) => {
       const origIdx = allData.semaines.length - 1 - i;
