@@ -197,13 +197,13 @@
     }
 
     /* ── BODY ── */
-    .widget-body { padding: 12px 13px 14px; }
+    .widget-body { padding: 14px 14px 18px; }
 
     /* ── KPIs ── */
     .kpis {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 7px;
+      gap: 8px;
       margin-bottom: 10px;
     }
 
@@ -214,18 +214,17 @@
     .kpi {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-left: 3px solid;
       border-radius: 8px;
-      padding: 9px 10px 8px;
+      padding: 11px 12px;
       box-shadow: var(--shadow-sm);
       transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out);
     }
-    .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
 
     .kpi-label {
       font-size: 9px; font-family: var(--mono);
       text-transform: uppercase; letter-spacing: .08em;
-      color: var(--muted); margin-bottom: 5px;
+      color: var(--muted); margin-bottom: 7px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
@@ -243,7 +242,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px;
       margin-bottom: 10px;
       box-shadow: var(--shadow-sm);
     }
@@ -256,12 +255,12 @@
     }
 
     .progress-bar-bg {
-      background: var(--border); border-radius: 4px;
-      height: 6px; overflow: hidden;
+      background: var(--border); border-radius: 99px;
+      height: 8px; overflow: hidden;
     }
 
     .progress-bar-fill {
-      height: 100%; border-radius: 4px;
+      height: 100%; border-radius: 99px;
       background: var(--green); transition: width .8s var(--ease-out);
     }
 
@@ -270,7 +269,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 10px 12px 9px;
+      padding: 12px;
       box-shadow: var(--shadow-sm);
       margin-bottom: 10px;
     }
@@ -393,7 +392,7 @@
       text-transform: uppercase;
       letter-spacing: .08em;
       color: var(--muted2);
-      padding: 8px 12px 7px;
+      padding: 9px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
     }
@@ -404,28 +403,30 @@
       gap: 10px;
       padding: 9px 12px;
       border-bottom: 1px solid var(--border);
-      transition: background .12s var(--ease-out), opacity .18s var(--ease-out);
+      transition: background .12s var(--ease-out), opacity .18s var(--ease-out), transform .18s var(--ease-out);
       cursor: pointer;
       text-decoration: none;
       color: inherit;
     }
     .session-item:last-child { border-bottom: none; }
-    .session-item:hover { background: var(--bg); }
+    .session-item:hover { background: var(--bg); transform: translateX(2px); }
 
     /* À venir — accent bleu */
     .sessions-col.upcoming {
-      border-left: 3px solid var(--blue);
+      border-color: var(--blue);
     }
     .sessions-col.upcoming .sessions-col-header {
       color: var(--blue);
+      background: color-mix(in srgb, var(--blue) 6%, var(--bg));
     }
 
     /* Récent — accent vert, items atténués */
     .sessions-col.recent {
-      border-left: 3px solid var(--green);
+      border-color: var(--green);
     }
     .sessions-col.recent .sessions-col-header {
       color: var(--green);
+      background: color-mix(in srgb, var(--green) 6%, var(--bg));
     }
     .sessions-col.recent .session-item {
       opacity: .72;
@@ -439,8 +440,8 @@
       font-family: var(--mono);
       text-transform: uppercase;
       letter-spacing: .06em;
-      padding: 3px 7px;
-      border-radius: 4px;
+      padding: 2px 8px;
+      border-radius: 99px;
       flex-shrink: 0;
       margin-top: 1px;
       font-weight: 600;
@@ -477,8 +478,8 @@
       font-family: var(--mono);
       font-size: 9px;
       font-weight: 600;
-      padding: 1px 5px;
-      border-radius: 3px;
+      padding: 1px 6px;
+      border-radius: 99px;
       flex-shrink: 0;
     }
 
@@ -651,13 +652,12 @@
     .modal-btn-confirm:disabled { opacity: .5; cursor: default; }
 
     .session-item.missed {
-      border-left: 2px solid var(--red);
-      background: color-mix(in srgb, var(--red) 4%, var(--surface));
+      background: color-mix(in srgb, var(--red) 5%, var(--surface));
     }
     .session-item.missed:hover { background: color-mix(in srgb, var(--red) 8%, var(--surface)); }
 
     .missed-badge {
-      font-size: 8px; font-family: var(--mono);
+      font-size: 9px; font-family: var(--mono);
       color: var(--red); border: 1px solid var(--red);
       padding: 2px 5px; border-radius: 3px;
       flex-shrink: 0; margin-top: 2px;
