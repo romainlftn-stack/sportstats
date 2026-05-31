@@ -460,6 +460,14 @@
 
     .session-info { flex: 1; min-width: 0; }
 
+    .session-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
     .session-title {
       font-size: 11px;
       font-family: var(--mono);
@@ -467,8 +475,8 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-bottom: 3px;
       font-weight: 500;
+      min-width: 0;
     }
 
     .sessions-col.upcoming .session-title {
@@ -696,7 +704,7 @@
     }
     .modal-missed-item:last-child { border-bottom: none; }
     .modal-missed-item:hover { background: var(--bg); }
-    .modal-missed-item input[type="radio"] { accent-color: var(--orange); }
+    .modal-missed-item input[type="checkbox"] { accent-color: var(--orange); }
     .modal-missed-item label { cursor: pointer; color: var(--text); flex: 1; }
     .modal-missed-date { color: var(--muted); font-size: 10px; }
 
@@ -820,6 +828,7 @@
         padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
         box-shadow: 0 -4px 16px rgba(0,0,0,.07);
       }
+      .detail-mode .week-arrows { display: none !important; }
     }
   </style>
 </head>
@@ -1089,7 +1098,10 @@ function fmtWhen(iso) {
   if (diff === 0) return { label:"Aujourd'hui", color: "var(--orange)" };
   if (diff === 1) return { label:"Demain",      color: "var(--blue)" };
   if (diff === -1) return { label:"Hier",        color: "var(--red)" };
-  if (diff > 0)   return { label:`Dans ${diff}j`, color: "var(--muted)" };
+  if (diff > 0) {
+    const dayNames = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+    return { label: dayNames[d.getDay()], color: "var(--muted)" };
+  }
   return { label:`Il y a ${Math.abs(diff)}j`, color: "var(--muted2)" };
 }
 
@@ -1173,8 +1185,11 @@ function renderSessionsPreview() {
       return `<${tag} class="${cls}" ${href}>
         ${badge}
         <div class="session-info">
-          <div class="session-title">${s.titre}</div>
-          <div class="session-meta">${evaHtml}${whenHtml}${metaParts.length ? metaParts.join(" · ") : ""}</div>
+          <div class="session-header">
+            <div class="session-title">${s.titre}</div>
+            ${whenHtml}
+          </div>
+          <div class="session-meta">${evaHtml}${metaParts.length ? metaParts.join(" · ") : ""}</div>
         </div>
       </${tag}>`;
     }).join("");
@@ -1483,18 +1498,13 @@ document.getElementById("shift-btn")?.addEventListener("click", () => {
     divider.textContent = "Reprendre dans";
     missedList.innerHTML = missed.map((s, i) => `
       <label class="modal-missed-item">
-        <input type="radio" name="missed-from" value="${i}" ${i === 0 ? "checked" : ""}/>
+        <input type="checkbox" class="missed-checkbox" value="${i}" checked/>
         <span>
           <span style="font-size:10px">${s.titre}</span><br>
           <span class="modal-missed-date">${fmtShort(s.date)}</span>
         </span>
       </label>
-    `).join("") + `
-      <label class="modal-missed-item">
-        <input type="radio" name="missed-from" value="today"/>
-        <span style="font-size:10px;color:var(--muted)">Ignorer les manquées · reprendre depuis aujourd'hui</span>
-      </label>
-    `;
+    `).join("");
   } else {
     missedSection.style.display = "none";
     divider.textContent = "Décaler de";
@@ -1517,9 +1527,10 @@ document.getElementById("modal-confirm")?.addEventListener("click", async () => 
   if (days < 0 || days > 30) return;
 
   const missed = window._missedSessions || [];
-  const radioVal = document.querySelector('input[name="missed-from"]:checked')?.value;
-  const includeMissed = missed.length > 0 && radioVal !== "today";
-  const fromIdx = includeMissed && radioVal !== undefined ? parseInt(radioVal) : null;
+  const missedIndices = Array.from(
+    document.querySelectorAll('.missed-checkbox:checked')
+  ).map(cb => parseInt(cb.value));
+  const includeMissed = missed.length > 0 && missedIndices.length > 0;
 
   const btn = document.getElementById("modal-confirm");
   btn.disabled = true;
@@ -1529,7 +1540,7 @@ document.getElementById("modal-confirm")?.addEventListener("click", async () => 
     const res = await fetch("/api/shift", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ days, includeMissed, fromIdx })
+      body: JSON.stringify({ days, includeMissed, missedIndices })
     });
     const data = await res.json();
 
@@ -1580,12 +1591,14 @@ initTheme();
 
 document.getElementById("refresh-btn").addEventListener("click", loadData);
 
-// ── BARRE MOBILE ──
-document.getElementById("prev-week-mob")?.addEventListener("click", () => {
-  if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
-});
-document.getElementById("next-week-mob")?.addEventListener("click", () => {
-  if (selectedIdx < (allData?.semaines?.length ?? 1) - 1) { selectedIdx++; updateSelection(); }
+// ── BARRE MOBILE ── (div is after </script>, so attach after DOM is ready)
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("prev-week-mob")?.addEventListener("click", () => {
+    if (selectedIdx > 0) { selectedIdx--; updateSelection(); }
+  });
+  document.getElementById("next-week-mob")?.addEventListener("click", () => {
+    if (selectedIdx < (allData?.semaines?.length ?? 1) - 1) { selectedIdx++; updateSelection(); }
+  });
 });
 
 // ── RACCOURCIS CLAVIER ──

@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   const dbId = "a4f674b8d9274089a8096f4c26e42522";
   if (!token) return res.status(500).json({ error: "NOTION_TOKEN manquant" });
 
-  const { days = 0, includeMissed = false, fromIdx = null } = req.body;
+  const { days = 0, includeMissed = false, missedIndices = null, fromIdx = null } = req.body;
   if (isNaN(days) || days < 0 || days > 30) {
     return res.status(400).json({ error: "Nombre de jours invalide (0-30)" });
   }
@@ -52,19 +52,38 @@ export default async function handler(req, res) {
     let offsetDays;
 
     if (includeMissed) {
-      // Toutes les séances À faire (passées + futures), triées par date
-      sessionsToShift = allResults.filter(p => p.properties?.Date?.date?.start);
+      const allSessions = allResults.filter(p => p.properties?.Date?.date?.start);
+      const missed = allSessions.filter(p => p.properties.Date.date.start < todayStr);
 
-      // Trouver la séance de départ (fromIdx dans les manquées, ou la première)
-      const missed = sessionsToShift.filter(p => p.properties.Date.date.start < todayStr);
-      const startPage = fromIdx !== null && missed[fromIdx] ? missed[fromIdx] : sessionsToShift[0];
-      const startDate = new Date(startPage.properties.Date.date.start);
-      startDate.setHours(0, 0, 0, 0);
+      // Determine which missed sessions to include
+      let includedMissed;
+      if (Array.isArray(missedIndices) && missedIndices.length > 0) {
+        includedMissed = missedIndices
+          .map(i => missed[i])
+          .filter(Boolean)
+          .sort((a, b) => a.properties.Date.date.start.localeCompare(b.properties.Date.date.start));
+      } else if (fromIdx !== null && missed[fromIdx]) {
+        includedMissed = missed.slice(fromIdx);
+      } else {
+        includedMissed = missed;
+      }
 
-      // Offset = écart entre la date de la séance de départ et aujourd'hui + N jours
       const targetDate = new Date(today);
       targetDate.setDate(targetDate.getDate() + parseInt(days));
-      offsetDays = Math.round((targetDate - startDate) / (1000 * 60 * 60 * 24));
+
+      if (includedMissed.length === 0) {
+        sessionsToShift = allSessions.filter(p => p.properties.Date.date.start >= todayStr);
+        offsetDays = parseInt(days);
+      } else {
+        const startDate = new Date(includedMissed[0].properties.Date.date.start);
+        startDate.setHours(0, 0, 0, 0);
+        offsetDays = Math.round((targetDate - startDate) / (1000 * 60 * 60 * 24));
+        const includedIds = new Set(includedMissed.map(p => p.id));
+        sessionsToShift = allSessions.filter(p => {
+          const d = p.properties.Date.date.start;
+          return includedIds.has(p.id) || d >= todayStr;
+        });
+      }
     } else {
       // Uniquement les séances futures
       sessionsToShift = allResults.filter(p => {
