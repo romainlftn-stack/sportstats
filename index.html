@@ -16,7 +16,7 @@
       --border:   #e8e6e3;
       --border2:  #d0ccc6;
       --text:     #1a1a18;
-      --muted:    #8f8b84;
+      --muted:    #706d67;
       --muted2:   #bcb8b1;
       --green:    #1a9456;
       --blue:     #2c5fe0;
@@ -38,8 +38,8 @@
         --border:  #1c2133;
         --border2: #242a3a;
         --text:    #d0d8ef;
-        --muted:   #4a5470;
-        --muted2:  #2e3650;
+        --muted:   #7080a0;
+        --muted2:  #3a4560;
         --green:   #4ecb8d;
         --blue:    #4f8fff;
         --pink:    #ff5c9e;
@@ -222,8 +222,8 @@
     .kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
 
     .kpi-label {
-      font-size: 9px; font-family: var(--mono);
-      text-transform: uppercase; letter-spacing: .08em;
+      font-size: 10px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .07em;
       color: var(--muted); margin-bottom: 7px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -235,7 +235,7 @@
       letter-spacing: -0.02em;
     }
 
-    .kpi-sub { font-size: 9px; font-family: var(--mono); color: var(--muted); margin-top: 4px; }
+    .kpi-sub { font-size: 10px; font-family: var(--mono); color: var(--muted); margin-top: 4px; }
 
     /* ── PROGRESS ── */
     .progress-wrap {
@@ -249,9 +249,9 @@
 
     .progress-header {
       display: flex; justify-content: space-between;
-      font-size: 9px; font-family: var(--mono);
-      text-transform: uppercase; letter-spacing: .08em;
-      color: var(--muted2); margin-bottom: 8px;
+      font-size: 10px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin-bottom: 8px;
     }
 
     .progress-bar-bg {
@@ -280,14 +280,14 @@
     }
 
     .chart-label {
-      font-size: 9px; font-family: var(--mono);
-      text-transform: uppercase; letter-spacing: .08em; color: var(--muted2);
+      font-size: 10px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
     }
 
     .toggles { display: flex; gap: 8px; }
 
     .toggle {
-      font-size: 9px; font-family: var(--mono);
+      font-size: 10px; font-family: var(--mono);
       display: flex; align-items: center; gap: 4px;
       cursor: pointer; opacity: 1; transition: opacity .2s var(--ease-out); color: var(--muted);
     }
@@ -397,11 +397,11 @@
     }
 
     .sessions-col-header {
-      font-size: 9px;
+      font-size: 10px;
       font-family: var(--mono);
       text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--muted2);
+      letter-spacing: .07em;
+      color: var(--muted);
       padding: 9px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
@@ -446,10 +446,10 @@
     }
 
     .session-type-badge {
-      font-size: 9px;
+      font-size: 10px;
       font-family: var(--mono);
       text-transform: uppercase;
-      letter-spacing: .06em;
+      letter-spacing: .05em;
       padding: 2px 8px;
       border-radius: 99px;
       flex-shrink: 0;
@@ -476,7 +476,7 @@
     }
 
     .session-meta {
-      font-size: 9px;
+      font-size: 10px;
       font-family: var(--mono);
       color: var(--muted);
       display: flex;
@@ -486,7 +486,7 @@
 
     .session-when {
       font-family: var(--mono);
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 600;
       padding: 1px 6px;
       border-radius: 99px;
@@ -515,16 +515,16 @@
     table { width: 100%; border-collapse: collapse; }
 
     thead th {
-      font-size: 9px; font-family: var(--mono);
-      text-transform: uppercase; letter-spacing: .08em;
-      color: var(--muted2); padding: 8px 10px 7px;
+      font-size: 10px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); padding: 8px 12px 7px;
       text-align: left; border-bottom: 1px solid var(--border);
       background: var(--bg); font-weight: 400;
     }
 
     tbody td {
-      font-size: 11px; font-family: var(--mono);
-      padding: 7px 10px; border-bottom: 1px solid var(--border);
+      font-size: 12px; font-family: var(--mono);
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
     }
 
     tbody tr { transition: background .1s var(--ease-out); cursor: pointer; }
@@ -559,7 +559,7 @@
       text-align: center;
       font-family: var(--mono); font-size: 10px; color: var(--text);
     }
-    .week-label-pos { font-size: 9px; color: var(--muted2); margin-top: 1px; }
+    .week-label-pos { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
     /* ── MODAL DÉCALER ── */
     .modal-overlay {
@@ -669,7 +669,7 @@
     .session-item.missed:hover { background: color-mix(in srgb, var(--red) 8%, var(--surface)); }
 
     .missed-badge {
-      font-size: 9px; font-family: var(--mono);
+      font-size: 10px; font-family: var(--mono);
       color: var(--red); border: 1px solid var(--red);
       padding: 2px 5px; border-radius: 3px;
       flex-shrink: 0; margin-top: 2px;
@@ -698,12 +698,12 @@
     .modal-missed-item:hover { background: var(--bg); }
     .modal-missed-item input[type="radio"] { accent-color: var(--orange); }
     .modal-missed-item label { cursor: pointer; color: var(--text); flex: 1; }
-    .modal-missed-date { color: var(--muted); font-size: 9px; }
+    .modal-missed-date { color: var(--muted); font-size: 10px; }
 
     .modal-divider {
-      font-size: 9px; font-family: var(--mono);
-      text-transform: uppercase; letter-spacing: .08em;
-      color: var(--muted2); margin-bottom: 10px;
+      font-size: 10px; font-family: var(--mono);
+      text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin-bottom: 10px;
     }
 
     .shift-btn {
@@ -731,8 +731,8 @@
       --border:  #1c2133;
       --border2: #242a3a;
       --text:    #d0d8ef;
-      --muted:   #4a5470;
-      --muted2:  #2e3650;
+      --muted:   #7080a0;
+      --muted2:  #3a4560;
       --green:   #4ecb8d;
       --blue:    #4f8fff;
       --pink:    #ff5c9e;
@@ -749,7 +749,7 @@
       --border:   #e8e6e3;
       --border2:  #d0ccc6;
       --text:     #1a1a18;
-      --muted:    #8f8b84;
+      --muted:    #706d67;
       --muted2:   #bcb8b1;
       --green:    #1a9456;
       --blue:     #2c5fe0;
