@@ -27,10 +27,6 @@ export default async function handler(req, res) {
 
       const data = await response.json();
 
-      if (req.query?.debug === "true") {
-        return res.status(200).json(data);
-      }
-
       if (!data.results) {
         return res.status(500).json({ error: "Réponse Notion invalide", detail: data });
       }

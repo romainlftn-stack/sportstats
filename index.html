@@ -714,22 +714,6 @@
       color: var(--muted); margin-bottom: 10px;
     }
 
-    .shift-btn {
-      font-size: 9px;
-      font-family: var(--mono);
-      color: var(--orange);
-      border: 1px solid var(--orange);
-      background: transparent;
-      padding: 3px 9px;
-      border-radius: 5px;
-      cursor: pointer;
-      letter-spacing: .06em;
-      transition: background .15s var(--ease-out), color .15s var(--ease-out), transform .1s var(--ease-out);
-      text-transform: uppercase;
-      touch-action: manipulation;
-    }
-    .shift-btn:hover { background: var(--orange); color: #fff; }
-
     .theme-btn { display: none; } /* géré via .btn-icon */
 
     /* Override dark mode manuel */
@@ -847,7 +831,7 @@
 
     <!-- Groupe icônes harmonisé -->
     <div class="btn-group">
-      <a class="btn-icon" id="detail-link" href="https://sportstats-inky.vercel.app/?mode=detail" target="_blank" rel="noopener" title="Détail">⇗</a>
+      <a class="btn-icon" id="detail-link" href="/?mode=detail" target="_blank" rel="noopener" title="Détail">⇗</a>
       <button class="btn-icon" id="refresh-btn" title="Actualiser">↻</button>
       <button class="btn-icon" id="theme-btn" title="Thème"></button>
     </div>
@@ -979,16 +963,19 @@
 </div>
 
 <script>
-const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 const isDetail = new URLSearchParams(location.search).get("mode") === "detail";
 
-const C = {
-  course: dark ? "#4f8fff" : "#2c5fe0",
-  kb:     dark ? "#ff5c9e" : "#d63f74",
-  kine:   dark ? "#4ecb8d" : "#1a9456",
-  orange: dark ? "#ff8c42" : "#d4620a",
-};
+function getC() {
+  const d = isDark();
+  return {
+    course: d ? "#4f8fff" : "#2c5fe0",
+    kb:     d ? "#ff5c9e" : "#d63f74",
+    kine:   d ? "#4ecb8d" : "#1a9456",
+    orange: d ? "#ff8c42" : "#d4620a",
+  };
+}
 
+let C = getC(); // mis à jour à chaque changement de thème
 let allData = null;
 let chartInst = null;
 let active = { course: true, kb: true };
@@ -997,7 +984,7 @@ let selectedIdx = 0;
 // Setup detail mode
 if (isDetail) {
   document.body.classList.add("detail-mode");
-  document.getElementById("detail-link").href = "https://sportstats-inky.vercel.app/";
+  document.getElementById("detail-link").href = "/";
   document.getElementById("detail-link").title = "Accueil";
   document.getElementById("detail-link").textContent = "⌂";
   document.getElementById("topbar-brand").textContent = "Rebuild 2026";
@@ -1245,7 +1232,7 @@ function renderKPIs() {
   const fields = isDetail ? [
     { label: "Course", val: s.course+"/"+s.coursePlanifiees, sub: fmt(s.debut) + " → " + fmt(addDays(s.debut, 6)) + (s.minutesCourse ? " · " + s.minutesCourse + " min" : ""), color: C.course },
     { label:"KB", val: s.kb || 0, sub: "cette semaine", color: C.kb },
-    { label:"EVA max", val: s.evaList?.length ? (Math.max(...s.evaList) === 0 ? "OK" : Math.max(...s.evaList).toFixed(1)) : "—", sub: "ITBS", color: Math.max(...(s.evaList||[0])) === 0 ? C.kine : C.orange },
+    { label:"EVA max", val: s.evaList?.length ? (Math.max(...s.evaList) === 0 ? "OK" : Math.max(...s.evaList).toFixed(1)) : "—", sub: "ITBS", color: !s.evaList?.length ? "var(--muted2)" : Math.max(...s.evaList) === 0 ? C.kine : C.orange },
     { label:"Kiné", val: s.kine || 0, sub: "cette semaine", color: C.orange },
   ] : [
     { label:"Séances total", val: t.realisees+"/"+t.planifiees, sub: pct+"% du plan", color: C.course },
@@ -1568,8 +1555,9 @@ function isDark() {
 
 function applyTheme(dark) {
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-  // ☾ contour lune = mode sombre visible, ✦ soleil contour = mode clair visible
   document.getElementById("theme-btn").textContent = dark ? "☀︎" : "☾";
+  C = getC();
+  if (allData) { renderToggles(); renderChart(); }
 }
 
 function initTheme() {
