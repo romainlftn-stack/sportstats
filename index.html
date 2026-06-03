@@ -684,6 +684,24 @@
       background: color-mix(in srgb, var(--red) 8%, transparent);
     }
 
+    /* ── SWIPE TO COMPLETE ── */
+    .sessions-col.upcoming .session-item { position: relative; }
+
+    .sessions-col.upcoming .session-item::after {
+      content: '';
+      position: absolute;
+      left: 10px; right: 10px;
+      top: 50%; margin-top: -1px;
+      height: 2px;
+      background: var(--strike-color, var(--muted2));
+      transform: scaleX(var(--strike-progress, 0));
+      transform-origin: var(--strike-origin, left center);
+      pointer-events: none;
+      border-radius: 1px;
+      z-index: 3;
+      transition: transform var(--strike-tr, 0s), background var(--strike-bg-tr, 0s);
+    }
+
     .modal-missed-list {
       margin-bottom: 14px;
       border: 1px solid var(--border);
@@ -1176,7 +1194,7 @@ function renderSessionsPreview() {
         : sessionBadge(s.type);
       const cls = isMissed ? "session-item missed" : "session-item";
 
-      return `<${tag} class="${cls}" ${href}>
+      return `<${tag} class="${cls}" ${href} data-date="${s.date}">
         ${badge}
         <div class="session-info">
           <div class="session-header">
@@ -1208,6 +1226,7 @@ function renderSessionsPreview() {
 
   document.getElementById("upcoming-list").innerHTML = col1Html;
   document.getElementById("recent-list").innerHTML = col2Html;
+  if (isDetail) attachSwipeHandlers();
 
   // Stocker toutes les manquées globales pour la modal Reporter
   window._missedSessions = raw
@@ -1614,6 +1633,118 @@ document.addEventListener("keydown", (e) => {
     if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); e.preventDefault(); }
   }
 });
+
+// ── SWIPE TO COMPLETE ──
+const _sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function attachSwipeHandlers() {
+  const container = document.getElementById('upcoming-list');
+  if (!container) return;
+
+  container.querySelectorAll('.session-item:not(.missed)').forEach(item => {
+    let startX = 0, startY = 0, tracking = false, lockedH = null, itemW = 0;
+
+    item.addEventListener('touchstart', e => {
+      if (item.dataset.completing) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      tracking = true; lockedH = null;
+      itemW = item.offsetWidth || 280;
+      item.style.transition = 'none';
+      item.style.setProperty('--strike-tr', '0s');
+      item.style.setProperty('--strike-bg-tr', '0s');
+    }, { passive: true });
+
+    item.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (lockedH === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+        lockedH = Math.abs(dx) >= Math.abs(dy);
+      }
+      if (!lockedH) return;
+      e.preventDefault();
+      const p = Math.min(1, Math.abs(dx) / (itemW * 0.68));
+      item.style.setProperty('--strike-progress', p);
+      item.style.setProperty('--strike-origin', dx >= 0 ? 'left center' : 'right center');
+      item.style.setProperty('--strike-color', p >= 0.55 ? 'var(--green)' : 'var(--muted2)');
+      item.style.transform = `translateX(${dx * 0.22}px)`;
+    }, { passive: false });
+
+    const onEnd = e => {
+      if (!tracking) return;
+      tracking = false;
+      if (!lockedH) return;
+      const touch = e.changedTouches && e.changedTouches[0];
+      const dx = (touch ? touch.clientX : startX) - startX;
+      const p = Math.min(1, Math.abs(dx) / (itemW * 0.68));
+      if (p >= 0.45) {
+        completeSession(item, dx >= 0);
+      } else {
+        item.style.transition = 'transform 0.28s var(--ease-out)';
+        item.style.setProperty('--strike-tr', '0.28s var(--ease-out)');
+        item.style.setProperty('--strike-bg-tr', '0.18s');
+        item.style.transform = 'none';
+        item.style.setProperty('--strike-progress', '0');
+        item.style.setProperty('--strike-color', 'var(--muted2)');
+      }
+    };
+
+    item.addEventListener('touchend', onEnd, { passive: true });
+    item.addEventListener('touchcancel', () => {
+      if (!tracking) return;
+      tracking = false;
+      item.style.transition = 'transform 0.28s var(--ease-out)';
+      item.style.setProperty('--strike-tr', '0.28s var(--ease-out)');
+      item.style.transform = 'none';
+      item.style.setProperty('--strike-progress', '0');
+    }, { passive: true });
+  });
+}
+
+async function completeSession(item, rightward) {
+  item.dataset.completing = '1';
+  const date = item.dataset.date;
+  const title = item.querySelector('.session-title')?.textContent?.trim();
+
+  // 1. Barré progressif jusqu'à 100%
+  item.style.setProperty('--strike-origin', rightward ? 'left center' : 'right center');
+  item.style.setProperty('--strike-color', 'var(--green)');
+  item.style.setProperty('--strike-tr', '0.32s var(--ease-out)');
+  item.style.setProperty('--strike-bg-tr', '0.18s');
+  item.style.transition = 'transform 0.28s var(--ease-out)';
+  item.style.setProperty('--strike-progress', '1');
+  item.style.transform = 'none';
+  await _sleep(380);
+
+  // 2. Fade + glissement
+  item.style.transition = 'opacity 0.26s var(--ease-out), transform 0.26s var(--ease-out)';
+  item.style.opacity = '0';
+  item.style.transform = `translateX(${rightward ? 28 : -28}px)`;
+  await _sleep(280);
+
+  // 3. Collapse hauteur
+  const h = item.getBoundingClientRect().height;
+  item.style.overflow = 'hidden';
+  item.style.maxHeight = h + 'px';
+  item.style.transition = 'max-height 0.22s var(--ease-out), padding-top 0.22s var(--ease-out), padding-bottom 0.22s var(--ease-out), border-bottom-width 0.22s';
+  await _sleep(16);
+  item.style.maxHeight = '0';
+  item.style.paddingTop = '0';
+  item.style.paddingBottom = '0';
+  item.style.borderBottomWidth = '0';
+  await _sleep(240);
+
+  // 4. Notifier le serveur (best-effort)
+  fetch('/api/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, date })
+  }).catch(() => {});
+
+  // 5. Rafraîchir
+  loadData();
+}
 
 loadData();
 </script>
