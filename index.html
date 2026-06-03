@@ -1760,27 +1760,27 @@ async function uncompleteSession(item) {
   const title = item.querySelector('.session-title')?.textContent?.trim();
 
   // Flash orange de confirmation
-  item.style.transition = 'background 0.12s';
+  item.style.transition = 'background 0.08s';
   item.style.background = 'color-mix(in srgb, var(--orange) 18%, var(--surface))';
-  await _sleep(140);
+  await _sleep(90);
 
   // Fade + glissement gauche
-  item.style.transition = 'opacity 0.24s var(--ease-out), transform 0.24s var(--ease-out)';
+  item.style.transition = 'opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out)';
   item.style.opacity = '0';
   item.style.transform = 'translateX(-24px)';
-  await _sleep(260);
+  await _sleep(165);
 
   // Collapse hauteur
   const h = item.getBoundingClientRect().height;
   item.style.overflow = 'hidden';
   item.style.maxHeight = h + 'px';
-  item.style.transition = 'max-height 0.2s var(--ease-out), padding-top 0.2s, padding-bottom 0.2s, border-bottom-width 0.2s';
+  item.style.transition = 'max-height 0.14s var(--ease-out), padding-top 0.14s, padding-bottom 0.14s, border-bottom-width 0.14s';
   await _sleep(16);
   item.style.maxHeight = '0';
   item.style.paddingTop = '0';
   item.style.paddingBottom = '0';
   item.style.borderBottomWidth = '0';
-  await _sleep(220);
+  await _sleep(155);
 
   // Optimistic: mise à jour locale immédiate
   if (allData?.raw) {
@@ -1844,12 +1844,14 @@ function attachSwipeHandlers() {
       if (p >= 0.45) {
         completeSession(item, dx >= 0);
       } else {
-        item.style.transition = 'transform 0.28s var(--ease-out)';
-        item.style.setProperty('--strike-tr', '0.28s var(--ease-out)');
-        item.style.setProperty('--strike-bg-tr', '0.18s');
-        item.style.transform = 'none';
+        item.style.setProperty('--strike-tr', '0.22s var(--ease-out)');
+        item.style.setProperty('--strike-bg-tr', '0.14s');
+        item.style.transition = 'transform 0.22s var(--ease-out)';
+        void item.offsetWidth; // force reflow pour que la transition s'applique au changement suivant
+        item.style.transform = '';
         item.style.setProperty('--strike-progress', '0');
         item.style.setProperty('--strike-color', 'var(--muted2)');
+        setTimeout(() => { if (!item.dataset.completing) item.style.transition = ''; }, 240);
       }
     };
 
@@ -1857,10 +1859,12 @@ function attachSwipeHandlers() {
     item.addEventListener('touchcancel', () => {
       if (!tracking) return;
       tracking = false;
-      item.style.transition = 'transform 0.28s var(--ease-out)';
-      item.style.setProperty('--strike-tr', '0.28s var(--ease-out)');
-      item.style.transform = 'none';
+      item.style.setProperty('--strike-tr', '0.22s var(--ease-out)');
+      item.style.transition = 'transform 0.22s var(--ease-out)';
+      void item.offsetWidth;
+      item.style.transform = '';
       item.style.setProperty('--strike-progress', '0');
+      setTimeout(() => { if (!item.dataset.completing) item.style.transition = ''; }, 240);
     }, { passive: true });
     item.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
 
@@ -1880,30 +1884,31 @@ async function completeSession(item, rightward) {
   // 1. Barré progressif jusqu'à 100%
   item.style.setProperty('--strike-origin', rightward ? 'left center' : 'right center');
   item.style.setProperty('--strike-color', 'var(--green)');
-  item.style.setProperty('--strike-tr', '0.32s var(--ease-out)');
-  item.style.setProperty('--strike-bg-tr', '0.18s');
-  item.style.transition = 'transform 0.28s var(--ease-out)';
+  item.style.setProperty('--strike-tr', '0.18s var(--ease-out)');
+  item.style.setProperty('--strike-bg-tr', '0.12s');
+  item.style.transition = 'transform 0.18s var(--ease-out)';
+  void item.offsetWidth;
   item.style.setProperty('--strike-progress', '1');
-  item.style.transform = 'none';
-  await _sleep(380);
+  item.style.transform = '';
+  await _sleep(200);
 
   // 2. Fade + glissement
-  item.style.transition = 'opacity 0.26s var(--ease-out), transform 0.26s var(--ease-out)';
+  item.style.transition = 'opacity 0.14s var(--ease-out), transform 0.14s var(--ease-out)';
   item.style.opacity = '0';
-  item.style.transform = `translateX(${rightward ? 28 : -28}px)`;
-  await _sleep(280);
+  item.style.transform = `translateX(${rightward ? 24 : -24}px)`;
+  await _sleep(155);
 
   // 3. Collapse hauteur
   const h = item.getBoundingClientRect().height;
   item.style.overflow = 'hidden';
   item.style.maxHeight = h + 'px';
-  item.style.transition = 'max-height 0.22s var(--ease-out), padding-top 0.22s var(--ease-out), padding-bottom 0.22s var(--ease-out), border-bottom-width 0.22s';
+  item.style.transition = 'max-height 0.14s var(--ease-out), padding-top 0.14s, padding-bottom 0.14s, border-bottom-width 0.14s';
   await _sleep(16);
   item.style.maxHeight = '0';
   item.style.paddingTop = '0';
   item.style.paddingBottom = '0';
   item.style.borderBottomWidth = '0';
-  await _sleep(240);
+  await _sleep(155);
 
   // 4. Optimistic: mise à jour locale immédiate
   if (allData?.raw) {
