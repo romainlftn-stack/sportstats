@@ -417,6 +417,9 @@
       cursor: pointer;
       text-decoration: none;
       color: inherit;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     .session-item:last-child { border-bottom: none; }
     .session-item:hover { background: var(--bg); transform: translateX(2px); }
@@ -716,14 +719,18 @@
       .session-action { display: flex; }
     }
     .session-action-complete {
-      color: var(--muted2);
       border: 1.5px solid var(--border2);
     }
-    .session-action-complete:hover {
-      color: var(--green);
-      border-color: var(--green);
-      background: color-mix(in srgb, var(--green) 10%, transparent);
+    .session-action-complete::before {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted2);
+      transition: background .15s var(--ease-out);
+      display: block;
     }
+    .session-action-complete:hover { border-color: var(--green); background: color-mix(in srgb, var(--green) 10%, transparent); }
+    .session-action-complete:hover::before { background: var(--green); }
     .session-action-complete:active { transform: scale(.86); }
     .session-action-restore {
       color: var(--muted);
@@ -1253,14 +1260,14 @@ function renderSessionsPreview() {
         : "";
 
       const tag = s.url ? "a" : "div";
-      const href = s.url ? `href="${s.url}" target="_blank" rel="noopener"` : "";
+      const href = s.url ? `href="${s.url}" target="_blank" rel="noopener" oncontextmenu="return false"` : "";
       const badge = isMissed
         ? `<span class="missed-badge">Manquée</span>`
         : sessionBadge(s.type);
       const cls = isMissed ? "session-item missed" : "session-item";
 
       const actionHtml = (!isPast && !isMissed)
-        ? `<button class="session-action session-action-complete" tabindex="-1" aria-label="Marquer réalisée">○</button>`
+        ? `<button class="session-action session-action-complete" tabindex="-1" aria-label="Marquer réalisée"></button>`
         : (isPast && !isMissed)
         ? `<button class="session-action session-action-restore" tabindex="-1" aria-label="Restaurer">↺</button>`
         : '';
@@ -1782,15 +1789,12 @@ async function uncompleteSession(item) {
   }
   renderSessionsPreview();
 
-  // Sync Notion puis reload complet
-  try {
-    await fetch('/api/uncomplete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, date })
-    });
-  } catch (_) {}
-  loadData();
+  // Sync Notion en arrière-plan, refresh silencieux après confirmation
+  fetch('/api/uncomplete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, date })
+  }).then(() => _silentRefresh()).catch(() => {});
 }
 
 // ── SWIPE TO COMPLETE ──
@@ -1858,6 +1862,7 @@ function attachSwipeHandlers() {
       item.style.transform = 'none';
       item.style.setProperty('--strike-progress', '0');
     }, { passive: true });
+    item.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
 
     // Bouton desktop
     item.querySelector('.session-action-complete')?.addEventListener('click', e => {
@@ -1907,15 +1912,26 @@ async function completeSession(item, rightward) {
   }
   renderSessionsPreview();
 
-  // 5. Sync Notion puis reload complet
+  // 5. Sync Notion en arrière-plan, refresh silencieux après confirmation
+  fetch('/api/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, date })
+  }).then(() => _silentRefresh()).catch(() => {});
+}
+
+async function _silentRefresh() {
   try {
-    await fetch('/api/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, date })
-    });
+    const res = await fetch('/api/stats');
+    const data = await res.json();
+    if (!data.semaines?.length) return;
+    allData = data;
+    renderKPIs();
+    renderProgress();
+    renderStatus();
+    renderSessionsPreview();
+    if (isDetail) { renderTable(); updateWeekNav(); }
   } catch (_) {}
-  loadData();
 }
 
 loadData();
