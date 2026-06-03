@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         filter: {
           and: [
             { property: "Date", date: { equals: date } },
-            { property: "Statut", select: { equals: "Réalisé" } },
+            { property: "Statut", select: { equals: "Complété" } },
           ],
         },
       }),
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
     const data = await queryRes.json();
     if (!data.results?.length) {
-      return res.status(404).json({ error: "Séance introuvable ou déjà annulée" });
+      return res.status(404).json({ error: "Séance introuvable ou déjà restaurée" });
     }
 
     let page = data.results[0];
@@ -45,6 +45,14 @@ export default async function handler(req, res) {
       if (match) page = match;
     }
 
+    const checkboxEntry = Object.entries(page.properties).find(([, v]) => v.type === "checkbox");
+    const propsToUpdate = {
+      Statut: { select: { name: "À faire" } },
+    };
+    if (checkboxEntry) {
+      propsToUpdate[checkboxEntry[0]] = { checkbox: false };
+    }
+
     const patchRes = await fetch(`https://api.notion.com/v1/pages/${page.id}`, {
       method: "PATCH",
       headers: {
@@ -52,11 +60,7 @@ export default async function handler(req, res) {
         "Notion-Version": "2022-06-28",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        properties: {
-          Statut: { select: { name: "À faire" } },
-        },
-      }),
+      body: JSON.stringify({ properties: propsToUpdate }),
     });
 
     if (!patchRes.ok) {

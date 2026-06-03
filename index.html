@@ -685,10 +685,56 @@
     }
 
     /* ── SWIPE TO COMPLETE ── */
-    .sessions-col.upcoming .session-item { position: relative; }
+    .sessions-col.upcoming .session-item {
+      position: relative;
+      -webkit-touch-callout: none;
+    }
 
     /* ── LONG PRESS TO UNCOMPLETE ── */
-    .sessions-col.recent .session-item { position: relative; }
+    .sessions-col.recent .session-item {
+      position: relative;
+      -webkit-touch-callout: none;
+    }
+
+    /* ── BOUTONS ACTION DESKTOP ── */
+    .session-action {
+      display: none;
+      align-items: center; justify-content: center;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: none;
+      cursor: pointer;
+      flex-shrink: 0;
+      align-self: center;
+      font-size: 12px;
+      font-family: var(--mono);
+      line-height: 1;
+      padding: 0;
+      transition: background .15s var(--ease-out), color .15s var(--ease-out), border-color .15s var(--ease-out), transform .1s var(--ease-out);
+    }
+    @media (hover: hover) {
+      .session-action { display: flex; }
+    }
+    .session-action-complete {
+      color: var(--muted2);
+      border: 1.5px solid var(--border2);
+    }
+    .session-action-complete:hover {
+      color: var(--green);
+      border-color: var(--green);
+      background: color-mix(in srgb, var(--green) 10%, transparent);
+    }
+    .session-action-complete:active { transform: scale(.86); }
+    .session-action-restore {
+      color: var(--muted);
+      border: none;
+      font-size: 15px;
+    }
+    .session-action-restore:hover {
+      color: var(--orange);
+      background: color-mix(in srgb, var(--orange) 10%, transparent);
+    }
+    .session-action-restore:active { transform: scale(.86); }
 
     .sessions-col.recent .session-item::before {
       content: '';
@@ -1213,6 +1259,12 @@ function renderSessionsPreview() {
         : sessionBadge(s.type);
       const cls = isMissed ? "session-item missed" : "session-item";
 
+      const actionHtml = (!isPast && !isMissed)
+        ? `<button class="session-action session-action-complete" tabindex="-1" aria-label="Marquer réalisée">○</button>`
+        : (isPast && !isMissed)
+        ? `<button class="session-action session-action-restore" tabindex="-1" aria-label="Restaurer">↺</button>`
+        : '';
+
       return `<${tag} class="${cls}" ${href} data-date="${s.date}">
         ${badge}
         <div class="session-info">
@@ -1222,6 +1274,7 @@ function renderSessionsPreview() {
           </div>
           <div class="session-meta">${evaHtml}${metaParts.length ? metaParts.join(" · ") : ""}</div>
         </div>
+        ${actionHtml}
       </${tag}>`;
     }).join("");
   }
@@ -1683,6 +1736,14 @@ function attachLongPressHandlers() {
 
     item.addEventListener('touchend', cancel, { passive: true });
     item.addEventListener('touchcancel', cancel, { passive: true });
+    // Bloquer le callout iOS (aperçu lien au long-press)
+    item.addEventListener('contextmenu', e => e.preventDefault(), { passive: false });
+
+    // Bouton desktop
+    item.querySelector('.session-action-restore')?.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!item.dataset.uncompleting) uncompleteSession(item);
+    });
   });
 }
 
@@ -1714,12 +1775,21 @@ async function uncompleteSession(item) {
   item.style.borderBottomWidth = '0';
   await _sleep(220);
 
-  fetch('/api/uncomplete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, date })
-  }).catch(() => {});
+  // Optimistic: mise à jour locale immédiate
+  if (allData?.raw) {
+    const s = allData.raw.find(r => r.date === date && (!title || r.titre === title));
+    if (s) { s.valide = false; s.statut = 'À faire'; }
+  }
+  renderSessionsPreview();
 
+  // Sync Notion puis reload complet
+  try {
+    await fetch('/api/uncomplete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, date })
+    });
+  } catch (_) {}
   loadData();
 }
 
@@ -1788,6 +1858,12 @@ function attachSwipeHandlers() {
       item.style.transform = 'none';
       item.style.setProperty('--strike-progress', '0');
     }, { passive: true });
+
+    // Bouton desktop
+    item.querySelector('.session-action-complete')?.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!item.dataset.completing) completeSession(item, true);
+    });
   });
 }
 
@@ -1824,14 +1900,21 @@ async function completeSession(item, rightward) {
   item.style.borderBottomWidth = '0';
   await _sleep(240);
 
-  // 4. Notifier le serveur (best-effort)
-  fetch('/api/complete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, date })
-  }).catch(() => {});
+  // 4. Optimistic: mise à jour locale immédiate
+  if (allData?.raw) {
+    const s = allData.raw.find(r => r.date === date && (!title || r.titre === title));
+    if (s) { s.valide = true; s.statut = 'Complété'; }
+  }
+  renderSessionsPreview();
 
-  // 5. Rafraîchir
+  // 5. Sync Notion puis reload complet
+  try {
+    await fetch('/api/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, date })
+    });
+  } catch (_) {}
   loadData();
 }
 

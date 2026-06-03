@@ -14,7 +14,6 @@ export default async function handler(req, res) {
   if (!date) return res.status(400).json({ error: "date manquante" });
 
   try {
-    // Trouver la page par date
     const queryRes = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
       method: "POST",
       headers: {
@@ -37,7 +36,6 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "Séance introuvable ou déjà réalisée" });
     }
 
-    // Si plusieurs résultats le même jour, prendre celui dont le titre correspond
     let page = data.results[0];
     if (title && data.results.length > 1) {
       const match = data.results.find(p => {
@@ -47,7 +45,15 @@ export default async function handler(req, res) {
       if (match) page = match;
     }
 
-    // Marquer comme Réalisé
+    // Détecter dynamiquement la propriété case à cocher
+    const checkboxEntry = Object.entries(page.properties).find(([, v]) => v.type === "checkbox");
+    const propsToUpdate = {
+      Statut: { select: { name: "Complété" } },
+    };
+    if (checkboxEntry) {
+      propsToUpdate[checkboxEntry[0]] = { checkbox: true };
+    }
+
     const patchRes = await fetch(`https://api.notion.com/v1/pages/${page.id}`, {
       method: "PATCH",
       headers: {
@@ -55,11 +61,7 @@ export default async function handler(req, res) {
         "Notion-Version": "2022-06-28",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        properties: {
-          Statut: { select: { name: "Réalisé" } },
-        },
-      }),
+      body: JSON.stringify({ properties: propsToUpdate }),
     });
 
     if (!patchRes.ok) {
