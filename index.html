@@ -687,6 +687,25 @@
     /* ── SWIPE TO COMPLETE ── */
     .sessions-col.upcoming .session-item { position: relative; }
 
+    /* ── LONG PRESS TO UNCOMPLETE ── */
+    .sessions-col.recent .session-item { position: relative; }
+
+    .sessions-col.recent .session-item::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: color-mix(in srgb, var(--orange) 12%, transparent);
+      transform: scaleX(0);
+      transform-origin: left center;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .sessions-col.recent .session-item.pressing::before {
+      transform: scaleX(1);
+      transition: transform 0.55s linear;
+    }
+
     .sessions-col.upcoming .session-item::after {
       content: '';
       position: absolute;
@@ -1226,7 +1245,7 @@ function renderSessionsPreview() {
 
   document.getElementById("upcoming-list").innerHTML = col1Html;
   document.getElementById("recent-list").innerHTML = col2Html;
-  if (isDetail) attachSwipeHandlers();
+  if (isDetail) { attachSwipeHandlers(); attachLongPressHandlers(); }
 
   // Stocker toutes les manquées globales pour la modal Reporter
   window._missedSessions = raw
@@ -1633,6 +1652,76 @@ document.addEventListener("keydown", (e) => {
     if (selectedIdx < allData.semaines.length - 1) { selectedIdx++; updateSelection(); e.preventDefault(); }
   }
 });
+
+// ── LONG PRESS TO UNCOMPLETE ──
+function attachLongPressHandlers() {
+  const container = document.getElementById('recent-list');
+  if (!container) return;
+
+  container.querySelectorAll('.session-item').forEach(item => {
+    let timer = null;
+    let startX = 0, startY = 0;
+
+    const cancel = () => {
+      clearTimeout(timer);
+      timer = null;
+      item.classList.remove('pressing');
+    };
+
+    item.addEventListener('touchstart', e => {
+      if (item.dataset.uncompleting) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      item.classList.add('pressing');
+      timer = setTimeout(() => { timer = null; uncompleteSession(item); }, 550);
+    }, { passive: true });
+
+    item.addEventListener('touchmove', e => {
+      if (!timer) return;
+      if (Math.abs(e.touches[0].clientX - startX) > 8 || Math.abs(e.touches[0].clientY - startY) > 8) cancel();
+    }, { passive: true });
+
+    item.addEventListener('touchend', cancel, { passive: true });
+    item.addEventListener('touchcancel', cancel, { passive: true });
+  });
+}
+
+async function uncompleteSession(item) {
+  item.dataset.uncompleting = '1';
+  const date = item.dataset.date;
+  const title = item.querySelector('.session-title')?.textContent?.trim();
+
+  // Flash orange de confirmation
+  item.style.transition = 'background 0.12s';
+  item.style.background = 'color-mix(in srgb, var(--orange) 18%, var(--surface))';
+  await _sleep(140);
+
+  // Fade + glissement gauche
+  item.style.transition = 'opacity 0.24s var(--ease-out), transform 0.24s var(--ease-out)';
+  item.style.opacity = '0';
+  item.style.transform = 'translateX(-24px)';
+  await _sleep(260);
+
+  // Collapse hauteur
+  const h = item.getBoundingClientRect().height;
+  item.style.overflow = 'hidden';
+  item.style.maxHeight = h + 'px';
+  item.style.transition = 'max-height 0.2s var(--ease-out), padding-top 0.2s, padding-bottom 0.2s, border-bottom-width 0.2s';
+  await _sleep(16);
+  item.style.maxHeight = '0';
+  item.style.paddingTop = '0';
+  item.style.paddingBottom = '0';
+  item.style.borderBottomWidth = '0';
+  await _sleep(220);
+
+  fetch('/api/uncomplete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, date })
+  }).catch(() => {});
+
+  loadData();
+}
 
 // ── SWIPE TO COMPLETE ──
 const _sleep = ms => new Promise(r => setTimeout(r, ms));

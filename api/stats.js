@@ -49,8 +49,8 @@ export default async function handler(req, res) {
       const dateRaw = get("Date")?.date?.start ?? null;
       const titre = get("Séance")?.title?.[0]?.plain_text ?? get("Seance")?.title?.[0]?.plain_text ?? "?";
       const type = get("Type")?.select?.name ?? null;
-      const valide = page.properties?.[""]?.checkbox ?? false;
       const statut = get("Statut")?.select?.name ?? "À faire";
+      const valide = statut === "Réalisé" || page.properties?.[""]?.checkbox || false;
       const evaRaw = get("EVA ITBS")?.select?.name ?? "N/A";
       const cumulRaw = get("Cumul")?.rich_text?.[0]?.plain_text ?? null;
 
